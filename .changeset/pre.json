@@ -1,8 +1,11 @@
 {
-	"mode": "pre",
-	"tag": "alpha",
-	"initialVersions": {
-		"@nestm/ai-sdk": "0.1.0-alpha.0"
-	},
-	"changesets": []
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "@nestm/ai-sdk": "0.1.0-alpha.0",
+    "@nestm/example-ai-sdk": "0.0.0"
+  },
+  "changesets": [
+    "initial-ai-sdk-release"
+  ]
 }
