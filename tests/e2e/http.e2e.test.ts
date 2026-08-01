@@ -18,6 +18,11 @@ interface CancellationProbe {
 	resolve(): void;
 }
 
+interface ClosableHttpServer {
+	closeAllConnections?(): void;
+	closeIdleConnections?(): void;
+}
+
 function createCancellationProbe(): CancellationProbe {
 	let resolveCancellation: (() => void) | undefined;
 	const cancelled = new Promise<void>((resolve) => {
@@ -187,6 +192,9 @@ describe(`AI SDK HTTP bridge (${testHttpAdapter})`, () => {
 	});
 
 	afterAll(async () => {
+		const server = app.getHttpServer() as ClosableHttpServer;
+		server.closeIdleConnections?.();
+		server.closeAllConnections?.();
 		await app.close();
 	});
 
