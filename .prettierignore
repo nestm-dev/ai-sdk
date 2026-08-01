@@ -1,0 +1,9 @@
+dist
+dist-tsc
+coverage
+pnpm-lock.yaml
+references
+examples/**/dist
+examples/**/node_modules
+CHANGELOG.md
+.changeset/

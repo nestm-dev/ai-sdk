@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run verify:pack
+      - run: pnpm exec attw --pack . --profile esm-only
+      - run: pnpm run example:build
+      - name: Verify public entry points and decorator metadata
+        run: node scripts/check-package.mjs
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist }
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: "${{ matrix.node }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run test
+        env: { CI: "true" }
+
+  canary:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: nest-next
+            command: pnpm up "@nestjs/*@next" && pnpm run test
+          - name: ai-snapshot
+            command: pnpm up ai@snapshot && pnpm run test
+    name: Canary (${{ matrix.name }})
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --no-frozen-lockfile
+      - run: ${{ matrix.command }}
+
+  npm-peer-smoke:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/setup-node@v5
+        with: { node-version: 24 }
+      - run: |
+          mkdir smoke && cd smoke && npm init -y > /dev/null
+          if npm install @nestjs/common@next @nestjs/core@next @nestjs/platform-express@next reflect-metadata rxjs --no-audit --no-fund; then
+            echo "::warning::Nest 12 prerelease sibling peers appear fixed — review pnpm-workspace.yaml, README, and the example workaround."
+          else
+            echo "npm ERESOLVE remains present while Nest prereleases declare stale sibling peers."
+          fi

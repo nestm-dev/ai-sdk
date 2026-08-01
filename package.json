@@ -1,0 +1,121 @@
+{
+	"name": "@nestm/ai-sdk",
+	"version": "0.1.0-alpha.0",
+	"description": "Provider-neutral AI SDK 7 integration for NestJS 12 with typed DI, tools, agents, and streaming HTTP responses.",
+	"license": "BSD-3-Clause",
+	"author": "nestm",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/nestm-dev/ai-sdk.git"
+	},
+	"homepage": "https://github.com/nestm-dev/ai-sdk#readme",
+	"bugs": {
+		"url": "https://github.com/nestm-dev/ai-sdk/issues"
+	},
+	"keywords": [
+		"nestjs",
+		"nestjs-12",
+		"ai-sdk",
+		"vercel-ai-sdk",
+		"agents",
+		"llm",
+		"streaming",
+		"esm",
+		"nestm"
+	],
+	"type": "module",
+	"sideEffects": false,
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"packageManager": "pnpm@11.18.0",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.mts",
+			"import": "./dist/index.mjs",
+			"default": "./dist/index.mjs"
+		},
+		"./http": {
+			"types": "./dist/http/index.d.mts",
+			"import": "./dist/http/index.mjs",
+			"default": "./dist/http/index.mjs"
+		},
+		"./testing": {
+			"types": "./dist/testing/index.d.mts",
+			"import": "./dist/testing/index.mjs",
+			"default": "./dist/testing/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE",
+		"CHANGELOG.md",
+		"CONTRIBUTING.md",
+		"SECURITY.md"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "tsdown",
+		"build:watch": "tsdown --watch src",
+		"build:tsc": "tsc -p tsconfig.build.json",
+		"typecheck": "tsc --noEmit",
+		"lint": "oxlint --type-aware",
+		"lint:fix": "oxlint --type-aware --fix",
+		"format": "prettier --write . --ignore-unknown",
+		"format:check": "prettier --check . --ignore-unknown",
+		"check": "pnpm run lint && pnpm run format:check && pnpm run typecheck",
+		"test": "pnpm run test:unit && pnpm run test:express && pnpm run test:fastify && pnpm run test:types",
+		"test:unit": "vitest run --config vitest.config.ts",
+		"test:express": "cross-env TEST_HTTP_ADAPTER=express vitest run --config vitest.config.e2e.ts",
+		"test:fastify": "cross-env TEST_HTTP_ADAPTER=fastify vitest run --config vitest.config.e2e.ts",
+		"test:types": "tsc -p tests/types/tsconfig.json",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"test:packed-types": "tsc -p tests/packed-types/tsconfig.json",
+		"example:build": "pnpm --filter @nestm/example-ai-sdk build",
+		"verify:pack": "pnpm run build && publint --strict && pnpm run test:packed-types",
+		"verify": "pnpm run check && pnpm run test && pnpm run verify:pack && pnpm run example:build",
+		"prepack": "pnpm run build",
+		"changeset": "changeset",
+		"release": "node scripts/publish.mjs"
+	},
+	"peerDependencies": {
+		"@nestjs/common": "^12.0.0-alpha.5",
+		"@nestjs/core": "^12.0.0-alpha.5",
+		"ai": ">=7.0.0 <8.0.0",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.0"
+	},
+	"devDependencies": {
+		"@arethetypeswrong/cli": "0.18.5",
+		"@changesets/cli": "2.31.1",
+		"@nestjs/common": "12.0.0-alpha.5",
+		"@nestjs/core": "12.0.0-alpha.5",
+		"@nestjs/platform-express": "12.0.0-alpha.5",
+		"@nestjs/platform-fastify": "12.0.0-alpha.5",
+		"@nestjs/testing": "12.0.0-alpha.5",
+		"@types/node": "26.1.2",
+		"@types/supertest": "7.2.1",
+		"@vitest/coverage-v8": "4.1.10",
+		"ai": "7.0.47",
+		"cross-env": "10.1.0",
+		"express": "5.2.1",
+		"fastify": "5.10.0",
+		"oxlint": "1.76.0",
+		"oxlint-tsgolint": "7.0.2001",
+		"prettier": "3.9.6",
+		"publint": "0.3.22",
+		"reflect-metadata": "0.2.2",
+		"rxjs": "7.8.2",
+		"supertest": "7.2.2",
+		"tsdown": "0.22.14",
+		"typescript": "6.0.2",
+		"vitest": "4.1.10",
+		"zod": "4.4.3"
+	}
+}
