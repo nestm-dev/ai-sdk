@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 
@@ -10,25 +10,21 @@ const assembleReleasePlan = changesetsRequire("@changesets/assemble-release-plan
 const { defaultConfig } = changesetsRequire("@changesets/config");
 
 describe("resolvePrereleaseTag", () => {
-	it("keeps the initial alpha changeset pending for the alpha.1 release PR", () => {
+	it("tracks the initial alpha changeset through its alpha.1 release PR", () => {
 		const packageJson = JSON.parse(
 			readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 		);
 		const preState = JSON.parse(
 			readFileSync(new URL("../.changeset/pre.json", import.meta.url), "utf8"),
 		);
-		const initialChangesetUrl = new URL("../.changeset/initial-ai-sdk-release.md", import.meta.url);
-
 		expect(preState.initialVersions["@nestm/ai-sdk"]).toBe("0.1.0-alpha.0");
 
-		if (existsSync(initialChangesetUrl)) {
-			expect(packageJson.version).toBe("0.1.0-alpha.0");
-			expect(preState.changesets).not.toContain("initial-ai-sdk-release");
-		} else {
-			// Once Changesets creates the version PR, the file is consumed and the
-			// package advances. Keep that release PR's CI green as well.
+		if (preState.changesets.includes("initial-ai-sdk-release")) {
+			// Changesets keeps the source file while prerelease mode is active. The
+			// prerelease state, rather than file existence, identifies consumption.
 			expect(packageJson.version).toMatch(/^0\.1\.0-alpha\.[1-9][0-9]*$/);
-			expect(preState.changesets).toContain("initial-ai-sdk-release");
+		} else {
+			expect(packageJson.version).toBe("0.1.0-alpha.0");
 		}
 	});
 
