@@ -6,6 +6,7 @@
     "@nestm/example-ai-sdk": "0.0.0"
   },
   "changesets": [
+    "curly-dodos-harness",
     "initial-ai-sdk-release"
   ]
 }
