@@ -55,7 +55,9 @@ jobs:
       # 22.12. Install with Node 24, then execute every test binary directly
       # under the advertised runtime so pnpm cannot mask the compatibility floor.
       - uses: actions/setup-node@v5
-        with: { node-version: "${{ matrix.node }}" }
+        with:
+          node-version: "${{ matrix.node }}"
+          package-manager-cache: false
       - name: Assert test runtime
         env:
           EXPECTED_NODE_VERSION: "${{ matrix.node }}"
