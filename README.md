@@ -11,6 +11,7 @@ HTTP responses without hiding the upstream APIs.
 - Named toolsets and agents with `useValue`, `useFactory`, `useClass`, and `useExisting`
 - Express and Fastify response streaming through `@nestm/ai-sdk/http`
 - Full AI SDK V4 mocks and Nest overrides through `@nestm/ai-sdk/testing`
+- Experimental, fenced Harness orchestration through `@nestm/ai-sdk/harness`
 
 Provider SDKs remain application-owned. Install and configure only the providers your application
 uses; this package does not depend on OpenAI, Anthropic, Google, MCP, or another concrete provider.
@@ -21,6 +22,10 @@ uses; this package does not depend on OpenAI, Anthropic, Google, MCP, or another
 - NestJS `^12.0.0-alpha.5`
 - AI SDK `>=7 <8`
 - ESM
+
+The optional Harness entrypoint currently requires the exact compatibility pair `ai@7.0.47` and
+`@ai-sdk/harness@1.0.53`. Claude Code and Codex adapters are tested as one release train; see the
+Harness section before upgrading any one package independently.
 
 > **NestJS prerelease peer note:** current NestJS 12 alpha packages still declare NestJS 11 ranges
 > for some sibling peers. With pnpm, allow NestJS 12 for those peers in `pnpm-workspace.yaml`. With
@@ -366,6 +371,67 @@ backpressure, and disconnect cancellation for Express and Fastify. Errors before
 remain available to Nest's exception pipeline; errors after a stream is committed terminate the
 connection. For custom integrations, inject `AiSdkResponseSender` or call `sendAiSdkResponse()`.
 
+## AI SDK Harness orchestration
+
+`@nestm/ai-sdk/harness` runs a concrete upstream `HarnessAgent` while keeping registration and
+routing application-owned. A fenced lease is held from checkpoint load through final persistence;
+every state transition is a compare-and-swap. A stale `running` marker becomes
+`recovery-required`, so the runner never silently starts a second prompt after an uncertain crash.
+The runner attempts the same fail-closed marker when session creation fails after the `running` CAS
+or when a final checkpoint cannot be committed. If the store itself is unavailable, the existing
+`running` marker remains and is converted on the next load. An operator must explicitly reconcile or
+reset either state. Recovery reasons are fixed metadata codes; native error messages are never copied
+into durable state.
+
+```ts
+import { AiSdkHarnessModule, durableSafeAiSdkHarnessFinalization } from "@nestm/ai-sdk/harness";
+
+AiSdkHarnessModule.forRoot({
+	sessionStore,
+	leaseManager,
+	timeoutMs: 120_000,
+	cleanupTimeoutMs: 10_000,
+	leaseTtlMs: 30_000,
+	finalization: durableSafeAiSdkHarnessFinalization,
+});
+```
+
+The application supplies and owns the session store, lease manager, concrete agent, adapter, and
+sandbox provider. The runner owns only the session handle it creates for a turn:
+
+```ts
+const run = await runner.stream({
+	agent,
+	key: { namespace: tenantId, agentKey: "claude-primary", sessionId: chatId },
+	turn: { kind: "prompt", messages: modelMessages },
+	abortSignal,
+});
+
+run.stream;
+await run.completion;
+```
+
+Prompt and continuation are intentionally distinct. A prompt is rejected when the checkpoint holds
+an unfinished turn; `continue` is rejected without one. Durable stores reject detach policies and
+never persist `continueFrom`: success stops and saves only a completed resume state, while error,
+timeout, disconnect, or any unfinished turn destroys the session and deletes its checkpoint.
+`warmEphemeralAiSdkHarnessFinalization` enables detach/continuation only for explicitly ephemeral
+stores.
+
+As a defensive invariant check, if a durable `stop()` unexpectedly returns `continueFrom` even though
+the session reported no unfinished turn, the runner resumes that exact session from the returned
+in-memory state, destroys it, then deletes the checkpoint and fails the run. Cleanup uses one absolute
+deadline, and the fenced lease is released last.
+
+`AiSdkHarnessResponse.ui()` converts UI messages, invokes the runner, converts the upstream Harness
+stream with AI SDK's `toUIMessageStream`, and returns the existing opaque HTTP response type. Stream
+cancellation is forwarded to the run before final cleanup.
+
+The tested candidate train is `ai@7.0.47`, `@ai-sdk/harness@1.0.53`,
+`@ai-sdk/harness-claude-code@1.0.54`, `@ai-sdk/harness-codex@1.0.55`, and
+`@ai-sdk/sandbox-vercel@1.0.53`. `@ai-sdk/workflow-harness` is deliberately not exported: its
+time-slice continuation can contain the same bridge credential and is not safe for durable storage.
+
 ## Testing
 
 The testing subpath wraps AI SDK's V4 mocks and never contacts a provider:
@@ -410,8 +476,8 @@ release when upstream experimental contracts change. Pin prerelease versions whe
 
 This package does not provide provider-specific configuration adapters, deprecated
 `generateObject`/`streamObject` façades, UI framework hooks, an owned MCP client, RAG/vector-store
-abstractions, or custom realtime transports. Import those capabilities from AI SDK or their provider
-packages directly.
+abstractions, custom realtime transports, a cross-runtime dispatcher, or durable Workflow Harness
+persistence. Import provider capabilities from AI SDK or their provider packages directly.
 
 ## License
 

@@ -14,6 +14,15 @@ import {
 } from "@nestm/ai-sdk";
 import { AiSdkHttpModule, AiSdkResponse, type AiSdkHttpResponse } from "@nestm/ai-sdk/http";
 import {
+	AiSdkHarnessModule,
+	AiSdkHarnessRunner,
+	durableSafeAiSdkHarnessFinalization,
+} from "@nestm/ai-sdk/harness";
+import {
+	InMemoryAiSdkHarnessSessionLeaseManager,
+	InMemoryAiSdkHarnessSessionStore,
+} from "@nestm/ai-sdk/harness/testing";
+import {
 	MockLanguageModelV4,
 	createAiSdkTestingModule,
 	createMockAiProvider,
@@ -73,6 +82,18 @@ const featureModule = AiSdkModule.forFeature({
 	],
 });
 const httpModule = AiSdkHttpModule.register();
+const harnessStore = new InMemoryAiSdkHarnessSessionStore({ durability: "durable" });
+const harnessLeases = new InMemoryAiSdkHarnessSessionLeaseManager();
+const harnessModule = AiSdkHarnessModule.forRoot({
+	sessionStore: harnessStore,
+	leaseManager: harnessLeases,
+	finalization: durableSafeAiSdkHarnessFinalization,
+	isGlobal: false,
+});
+const harnessRunner = new AiSdkHarnessRunner({
+	sessionStore: harnessStore,
+	leaseManager: harnessLeases,
+});
 const testingModule = createAiSdkTestingModule();
 const httpResponse: AiSdkHttpResponse = AiSdkResponse.text(new ReadableStream<string>());
 
@@ -100,4 +121,14 @@ const builder = Test.createTestingModule({
 });
 overrideAiSdkLanguageModel(builder, new MockLanguageModelV4());
 
-export { Consumer, builder, featureModule, httpModule, httpResponse, rootModule, testingModule };
+export {
+	Consumer,
+	builder,
+	featureModule,
+	harnessModule,
+	harnessRunner,
+	httpModule,
+	httpResponse,
+	rootModule,
+	testingModule,
+};
