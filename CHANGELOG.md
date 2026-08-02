@@ -1,5 +1,13 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.2
+
+### Minor Changes
+
+- ae7fbcd: Add experimental `./harness` and `./harness/testing` entrypoints with fenced session leases,
+  CAS-protected checkpoints, durable credential-safe finalization, explicit continuation, UI response
+  bridging, and exact AI SDK Harness release-train validation.
+
 ## 0.1.0-alpha.1
 
 ### Minor Changes

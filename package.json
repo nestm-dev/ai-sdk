@@ -1,6 +1,6 @@
 {
 	"name": "@nestm/ai-sdk",
-	"version": "0.1.0-alpha.1",
+	"version": "0.1.0-alpha.2",
 	"description": "Provider-neutral AI SDK 7 integration for NestJS 12 with typed DI, tools, agents, and streaming HTTP responses.",
 	"license": "BSD-3-Clause",
 	"author": "nestm",
