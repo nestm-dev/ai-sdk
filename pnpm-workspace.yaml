@@ -13,6 +13,9 @@ peerDependencyRules:
 # @nestjs/core's postinstall is only a donation banner; never run it.
 allowBuilds:
   "@nestjs/core": false
+  "@swc/core": false
+  cbor-extract: false
+  esbuild: false
 
 # `changeset publish` delegates to pnpm. A failed OIDC attestation must fail
 # the release rather than silently publishing without provenance.

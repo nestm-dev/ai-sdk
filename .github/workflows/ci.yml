@@ -44,14 +44,50 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24]
+        node: ["22.12.0", "24"]
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
-        with: { node-version: "${{ matrix.node }}", cache: pnpm }
+        with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run test
+      # pnpm 11.18 requires Node >=22.13, while this package supports Node
+      # 22.12. Install with Node 24, then execute every test binary directly
+      # under the advertised runtime so pnpm cannot mask the compatibility floor.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "${{ matrix.node }}"
+          package-manager-cache: false
+      - name: Assert test runtime
+        env:
+          EXPECTED_NODE_VERSION: "${{ matrix.node }}"
+        run: |
+          node -e '
+            const actual = process.versions.node;
+            const expected = process.env.EXPECTED_NODE_VERSION;
+            const matches = expected.includes(".")
+              ? actual === expected
+              : actual.split(".")[0] === expected;
+            if (!matches) {
+              throw new Error("Expected Node " + expected + ", received " + actual);
+            }
+            console.log("Testing with Node " + actual);
+          '
+      - name: Unit tests
+        run: node ./node_modules/vitest/vitest.mjs run --config vitest.config.ts
+        env: { CI: "true" }
+      - name: Express E2E tests
+        run: node ./node_modules/vitest/vitest.mjs run --config vitest.config.e2e.ts
+        env:
+          CI: "true"
+          TEST_HTTP_ADAPTER: express
+      - name: Fastify E2E tests
+        run: node ./node_modules/vitest/vitest.mjs run --config vitest.config.e2e.ts
+        env:
+          CI: "true"
+          TEST_HTTP_ADAPTER: fastify
+      - name: Type tests
+        run: node ./node_modules/typescript/bin/tsc -p tests/types/tsconfig.json
         env: { CI: "true" }
 
   canary:
@@ -66,6 +102,8 @@ jobs:
             command: pnpm up "@nestjs/*@next" && pnpm run test
           - name: ai-snapshot
             command: pnpm up ai@snapshot && pnpm run test
+          - name: harness-latest
+            command: node scripts/harness-candidate-canary.mjs
     name: Canary (${{ matrix.name }})
     steps:
       - uses: actions/checkout@v5

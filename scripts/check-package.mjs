@@ -1,7 +1,14 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const expectedExports = [".", "./http", "./testing", "./package.json"];
+const expectedExports = [
+	".",
+	"./http",
+	"./testing",
+	"./harness",
+	"./harness/testing",
+	"./package.json",
+];
 
 for (const entry of expectedExports) {
 	if (packageJson.exports?.[entry] === undefined) {
@@ -16,6 +23,10 @@ for (const file of [
 	"../dist/http/index.d.mts",
 	"../dist/testing/index.mjs",
 	"../dist/testing/index.d.mts",
+	"../dist/harness/index.mjs",
+	"../dist/harness/index.d.mts",
+	"../dist/harness/testing/index.mjs",
+	"../dist/harness/testing/index.d.mts",
 ]) {
 	if (!existsSync(new URL(file, import.meta.url))) {
 		throw new Error(`Missing build artifact: ${file.replace("../", "")}`);

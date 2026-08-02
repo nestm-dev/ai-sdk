@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## Unreleased
+
+- Add experimental `@nestm/ai-sdk/harness` and `/harness/testing` entrypoints with fenced leases,
+  CAS checkpoints, explicit continuation, bounded cleanup, durable credential-safe finalization,
+  UI streaming, in-memory fixtures, and an exact release-train guard.
+
 ## 0.1.0-alpha.1
 
 ### Minor Changes
