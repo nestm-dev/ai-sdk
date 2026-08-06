@@ -23,8 +23,8 @@ uses; this package does not depend on OpenAI, Anthropic, Google, MCP, or another
 - AI SDK `>=7 <8`
 - ESM
 
-The optional Harness entrypoint currently requires the exact compatibility pair `ai@7.0.47` and
-`@ai-sdk/harness@1.0.53`. Claude Code and Codex adapters are tested as one release train; see the
+The optional Harness entrypoint currently requires the exact compatibility pair `ai@7.0.52` and
+`@ai-sdk/harness@1.0.58`. Claude Code and Codex adapters are tested as one release train; see the
 Harness section before upgrading any one package independently.
 
 > **NestJS prerelease peer note:** current NestJS 12 alpha packages still declare NestJS 11 ranges
@@ -435,9 +435,9 @@ deadline, and the fenced lease is released last.
 stream with AI SDK's `toUIMessageStream`, and returns the existing opaque HTTP response type. Stream
 cancellation is forwarded to the run before final cleanup.
 
-The tested candidate train is `ai@7.0.47`, `@ai-sdk/harness@1.0.53`,
-`@ai-sdk/harness-claude-code@1.0.54`, `@ai-sdk/harness-codex@1.0.55`, and
-`@ai-sdk/sandbox-vercel@1.0.53`. `@ai-sdk/workflow-harness` is deliberately not exported: its
+The tested candidate train is `ai@7.0.52`, `@ai-sdk/harness@1.0.58`,
+`@ai-sdk/harness-claude-code@1.0.59`, `@ai-sdk/harness-codex@1.0.60`, and
+`@ai-sdk/sandbox-vercel@1.0.58`. `@ai-sdk/workflow-harness` is deliberately not exported: its
 time-slice continuation can contain the same bridge credential and is not safe for durable storage.
 
 ## Testing

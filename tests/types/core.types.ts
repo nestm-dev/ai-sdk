@@ -20,10 +20,12 @@ const config = defineAiSdkConfig({
 });
 void config;
 
-defineAiSdkConfig({
-	// @ts-expect-error invalid default prevents the prebuilt registry overload from matching
+defineAiSdkConfig<typeof registry>({
 	registry,
-	defaults: { language: "local:chat" },
+	defaults: {
+		// @ts-expect-error the prebuilt registry uses a slash separator
+		language: "local:chat",
+	},
 });
 
 defineAiSdkConfig({
@@ -32,7 +34,7 @@ defineAiSdkConfig({
 	defaults: { language: "local/chat" },
 });
 
-defineAiSdkConfig({
+defineAiSdkConfig<{ local: typeof provider }, "/">({
 	providers: { local: provider },
 	registryOptions: { separator: "/" },
 	defaults: {
@@ -41,7 +43,7 @@ defineAiSdkConfig({
 	},
 });
 
-defineAiSdkConfig({
+defineAiSdkConfig<{ local: typeof provider }, ":">({
 	providers: { local: provider },
 	defaults: {
 		// @ts-expect-error defaults cannot name a provider absent from the provider map
