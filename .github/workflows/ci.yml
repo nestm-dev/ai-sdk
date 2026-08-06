@@ -16,9 +16,11 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+      - uses: actions/setup-node@v7
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
@@ -26,9 +28,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+      - uses: actions/setup-node@v7
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm run verify:pack
@@ -36,7 +40,7 @@ jobs:
       - run: pnpm run example:build
       - name: Verify public entry points and decorator metadata
         run: node scripts/check-package.mjs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: dist, path: dist }
 
   test:
@@ -46,15 +50,17 @@ jobs:
       matrix:
         node: ["22.12.0", "24"]
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+      - uses: actions/setup-node@v7
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      # pnpm 11.18 requires Node >=22.13, while this package supports Node
+      # pnpm 11.20 requires Node >=22.13, while this package supports Node
       # 22.12. Install with Node 24, then execute every test binary directly
       # under the advertised runtime so pnpm cannot mask the compatibility floor.
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "${{ matrix.node }}"
           package-manager-cache: false
@@ -106,9 +112,11 @@ jobs:
             command: node scripts/harness-candidate-canary.mjs
     name: Canary (${{ matrix.name }})
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v2
+        with:
+          install: false
+      - uses: actions/setup-node@v7
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --no-frozen-lockfile
       - run: ${{ matrix.command }}
@@ -117,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     steps:
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with: { node-version: 24 }
       - run: |
           mkdir smoke && cd smoke && npm init -y > /dev/null
