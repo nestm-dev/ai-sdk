@@ -30,12 +30,20 @@ Harness section before upgrading any one package independently.
 > **NestJS prerelease peer note:** current NestJS 12 alpha packages still declare NestJS 11 ranges
 > for some sibling peers. With pnpm, allow NestJS 12 for those peers in `pnpm-workspace.yaml`. With
 > npm, use an equivalent override or `--legacy-peer-deps` until the upstream ranges are updated.
+> When using `--legacy-peer-deps`, install `zod` explicitly because npm will not auto-install AI
+> SDK's peer dependency in that mode.
 
 ## Installation
 
 ```bash
-pnpm add @nestm/ai-sdk ai @nestjs/common @nestjs/core reflect-metadata rxjs
+pnpm add @nestm/ai-sdk@alpha ai zod @nestjs/common @nestjs/core reflect-metadata rxjs
+
+# npm while the NestJS 12 peer ranges are prerelease-only
+npm install @nestm/ai-sdk@alpha ai zod @nestjs/common @nestjs/core reflect-metadata rxjs --legacy-peer-deps
 ```
+
+The package is currently on an alpha release train, so use the `alpha` dist-tag until a stable
+release is promoted to `latest`.
 
 Add the provider package used by your application separately. AI SDK's built-in Gateway provider is
 available from `ai` and needs no additional package.
