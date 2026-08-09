@@ -28,7 +28,7 @@
 	"engines": {
 		"node": ">=22.12.0"
 	},
-	"packageManager": "pnpm@11.18.0",
+	"packageManager": "pnpm@11.20.0",
 	"types": "./dist/index.d.mts",
 	"exports": {
 		".": {
@@ -95,7 +95,7 @@
 		"release": "node scripts/publish.mjs"
 	},
 	"peerDependencies": {
-		"@ai-sdk/harness": "1.0.53",
+		"@ai-sdk/harness": "1.0.58",
 		"@nestjs/common": "^12.0.0-alpha.5",
 		"@nestjs/core": "^12.0.0-alpha.5",
 		"ai": ">=7.0.0 <8.0.0",
@@ -108,11 +108,11 @@
 		}
 	},
 	"devDependencies": {
-		"@ai-sdk/harness": "1.0.53",
-		"@ai-sdk/harness-claude-code": "1.0.54",
-		"@ai-sdk/harness-codex": "1.0.55",
-		"@ai-sdk/sandbox-vercel": "1.0.53",
-		"@ai-sdk/workflow-harness": "1.0.53",
+		"@ai-sdk/harness": "1.0.58",
+		"@ai-sdk/harness-claude-code": "1.0.59",
+		"@ai-sdk/harness-codex": "1.0.60",
+		"@ai-sdk/sandbox-vercel": "1.0.58",
+		"@ai-sdk/workflow-harness": "1.0.58",
 		"@arethetypeswrong/cli": "0.18.5",
 		"@changesets/cli": "2.31.1",
 		"@nestjs/common": "12.0.0-alpha.5",
@@ -123,19 +123,19 @@
 		"@types/node": "26.1.2",
 		"@types/supertest": "7.2.1",
 		"@vitest/coverage-v8": "4.1.10",
-		"ai": "7.0.47",
+		"ai": "7.0.52",
 		"cross-env": "10.1.0",
 		"express": "5.2.1",
-		"fastify": "5.10.0",
-		"oxlint": "1.76.0",
+		"fastify": "5.11.2",
+		"oxlint": "1.77.0",
 		"oxlint-tsgolint": "7.0.2001",
 		"prettier": "3.9.6",
-		"publint": "0.3.22",
+		"publint": "0.3.23",
 		"reflect-metadata": "0.2.2",
 		"rxjs": "7.8.2",
 		"supertest": "7.2.2",
 		"tsdown": "0.22.14",
-		"typescript": "6.0.2",
+		"typescript": "7.0.2",
 		"vitest": "4.1.10",
 		"zod": "4.4.3"
 	}

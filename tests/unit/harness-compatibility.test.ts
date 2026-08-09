@@ -11,7 +11,7 @@ import {
 describe("Harness release-train compatibility", () => {
 	it("loads the exact supported AI SDK and Harness train", () => {
 		expect(assertAiSdkHarnessCompatibility).not.toThrow();
-		expect(AI_SDK_HARNESS_COMPATIBILITY).toEqual({ ai: "7.0.47", harness: "1.0.53" });
+		expect(AI_SDK_HARNESS_COMPATIBILITY).toEqual({ ai: "7.0.52", harness: "1.0.58" });
 	});
 
 	it("constructs the real Claude Code and Codex adapters without provider calls", () => {
