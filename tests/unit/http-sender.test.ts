@@ -37,6 +37,14 @@ class TestResponse extends EventEmitter {
 	}
 }
 
+class ClosingBackpressureResponse extends TestResponse {
+	override write(chunk: Uint8Array): boolean {
+		super.write(chunk);
+		this.emit("close");
+		return false;
+	}
+}
+
 describe("sendAiSdkResponse", () => {
 	it("preserves status, status text, headers, multiple cookies, and binary chunks", async () => {
 		const headers = new Headers({ "content-type": "application/octet-stream" });
@@ -74,6 +82,36 @@ describe("sendAiSdkResponse", () => {
 
 		expect(response.chunks).toEqual([Uint8Array.of(1), Uint8Array.of(2)]);
 		expect(response.flush).toHaveBeenCalledTimes(2);
+	});
+
+	it("does not wait forever when a disconnect races with backpressure", async () => {
+		const response = new ClosingBackpressureResponse();
+
+		await sendAiSdkResponse(new Response(byteStream(Uint8Array.of(1))), response);
+
+		expect(response.chunks).toEqual([Uint8Array.of(1)]);
+		expect(response.writableEnded).toBe(false);
+	});
+
+	it("releases backpressure when the incoming request aborts before response close", async () => {
+		const response = new TestResponse();
+		response.writeResult = false;
+		const request = new EventEmitter();
+		const cancel = vi.fn();
+		const body = new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(Uint8Array.of(1));
+			},
+			cancel,
+		});
+		const transfer = sendAiSdkResponse(new Response(body), response, request);
+
+		await waitUntil(() => response.chunks.length === 1);
+		request.emit("aborted");
+		await transfer;
+
+		expect(cancel).toHaveBeenCalledOnce();
+		expect(response.writableEnded).toBe(false);
 	});
 
 	it("cancels the Fetch body when the client disconnects", async () => {

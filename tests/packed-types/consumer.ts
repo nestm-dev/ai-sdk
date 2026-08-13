@@ -35,6 +35,10 @@ const provider = createMockAiProvider();
 const registry = createProviderRegistry({ mock: provider });
 const config = defineAiSdkConfig({
 	registry,
+	requestDefaults: {
+		maxRetries: 1,
+		timeout: { totalMs: 30_000, stepMs: 10_000, chunkMs: 5_000 },
+	},
 	defaults: {
 		language: provider.languageModel("default"),
 		embedding: provider.embeddingModel("default"),
@@ -94,8 +98,9 @@ const harnessRunner = new AiSdkHarnessRunner({
 	sessionStore: harnessStore,
 	leaseManager: harnessLeases,
 });
-const testingModule = createAiSdkTestingModule();
+const testingModule = createAiSdkTestingModule({ requestDefaults: { maxRetries: 0 } });
 const httpResponse: AiSdkHttpResponse = AiSdkResponse.text(new ReadableStream<string>());
+void httpResponse.resolve({ abortSignal: new AbortController().signal });
 
 @Injectable()
 class Consumer {

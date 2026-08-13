@@ -2,16 +2,31 @@ import {
 	createAgentUIStreamResponse,
 	createTextStreamResponse,
 	createUIMessageStreamResponse,
+	consumeStream,
 } from "ai";
 import type {
 	Agent,
+	GenerateTextOnStepEndCallback,
+	GenerateTextOnStepFinishCallback,
 	InferAgentUIMessage,
+	InferUIMessageChunk,
+	Output,
+	ToolSet,
 	UIMessage,
-	UIMessageChunk,
 	UIMessageStreamOptions,
 } from "ai";
+import { combineAbortSignals } from "../ai-sdk.abort.js";
 
 const AI_SDK_HTTP_RESPONSE = Symbol("@nestm/ai-sdk/http-response");
+
+export interface AiSdkHttpResponseContext {
+	/** Signal aborted by the HTTP adapter when the client disconnects. */
+	readonly abortSignal?: AbortSignal;
+}
+
+type AiSdkHttpResponseResolver = (
+	context: AiSdkHttpResponseContext,
+) => Response | PromiseLike<Response>;
 
 type TextStreamResponseOptions = Omit<Parameters<typeof createTextStreamResponse>[0], "stream">;
 
@@ -20,47 +35,56 @@ type UIMessageStreamResponseOptions = Omit<
 	"stream"
 >;
 
-type AgentStreamOptions<AGENT> = AGENT extends {
-	stream(options: infer OPTIONS): PromiseLike<unknown>;
-}
-	? OPTIONS
-	: never;
+type UIMessageSourceResponseOptions<UI_MESSAGE extends UIMessage> = UIMessageStreamResponseOptions &
+	UIMessageStreamOptions<UI_MESSAGE>;
 
-type AgentResponseExecutionKeys =
-	| "abortSignal"
-	| "timeout"
-	| "experimental_sandbox"
-	| "options"
-	| "experimental_transform"
-	| "onStepEnd"
-	| "onStepFinish";
+type UpstreamAgentResponseOptions<
+	CALL_OPTIONS,
+	TOOLS extends ToolSet,
+	RUNTIME_CONTEXT extends Record<string, unknown>,
+	OUTPUT extends Output.Output,
+	MESSAGE_METADATA,
+> = Parameters<
+	typeof createAgentUIStreamResponse<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT, MESSAGE_METADATA>
+>[0];
 
-type AgentResponseExecutionOptions<AGENT> = Pick<
-	AgentStreamOptions<AGENT>,
-	Extract<keyof AgentStreamOptions<AGENT>, AgentResponseExecutionKeys>
->;
-
-type UpstreamAgent<AGENT> =
-	AGENT extends Agent<infer CALL_OPTIONS, infer TOOLS, infer RUNTIME_CONTEXT, infer OUTPUT>
-		? Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>
-		: never;
+type AgentCallOptions<
+	CALL_OPTIONS,
+	TOOLS extends ToolSet,
+	RUNTIME_CONTEXT extends Record<string, unknown>,
+	OUTPUT extends Output.Output,
+> = Pick<Parameters<Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>["stream"]>[0], "options">;
 
 export type AiSdkAgentResponseOptions<
-	AGENT,
-	UI_MESSAGE extends UIMessage = InferAgentUIMessage<AGENT>,
+	CALL_OPTIONS = never,
+	TOOLS extends ToolSet = {},
+	RUNTIME_CONTEXT extends Record<string, unknown> = Record<string, unknown>,
+	OUTPUT extends Output.Output = never,
+	MESSAGE_METADATA = unknown,
 > = {
-	readonly agent: AGENT & UpstreamAgent<AGENT>;
-	readonly uiMessages: readonly NoInfer<UI_MESSAGE>[];
-} & AgentResponseExecutionOptions<AGENT> &
-	UIMessageStreamResponseOptions &
-	UIMessageStreamOptions<UI_MESSAGE>;
+	readonly agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
+	readonly uiMessages: InferAgentUIMessage<
+		Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
+		MESSAGE_METADATA
+	>[];
+} & Omit<
+	UpstreamAgentResponseOptions<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT, MESSAGE_METADATA>,
+	"agent" | "onStepEnd" | "onStepFinish" | "options" | "uiMessages"
+> &
+	AgentCallOptions<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT> & {
+		onStepEnd?: GenerateTextOnStepEndCallback<TOOLS, RUNTIME_CONTEXT>;
+		/** @deprecated Use `onStepEnd` instead. */
+		onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS, RUNTIME_CONTEXT>;
+	};
 
 export interface AiSdkTextStreamSource {
 	readonly textStream: ReadableStream<string>;
 }
 
 export interface AiSdkUIMessageStreamSource<UI_MESSAGE extends UIMessage = UIMessage> {
-	toUIMessageStream(options?: UIMessageStreamOptions<UI_MESSAGE>): ReadableStream<UIMessageChunk>;
+	toUIMessageStream(
+		options?: UIMessageStreamOptions<UI_MESSAGE>,
+	): ReadableStream<InferUIMessageChunk<UI_MESSAGE>>;
 }
 
 /**
@@ -68,11 +92,17 @@ export interface AiSdkUIMessageStreamSource<UI_MESSAGE extends UIMessage = UIMes
  */
 export class AiSdkHttpResponse {
 	readonly [AI_SDK_HTTP_RESPONSE] = true;
+	private resolvedResponse: Promise<Response> | undefined;
 
-	constructor(private readonly response: Response | PromiseLike<Response>) {}
+	constructor(
+		private readonly response: Response | PromiseLike<Response> | AiSdkHttpResponseResolver,
+	) {}
 
-	resolve(): Promise<Response> {
-		return Promise.resolve(this.response);
+	resolve(context: AiSdkHttpResponseContext = {}): Promise<Response> {
+		this.resolvedResponse ??= Promise.resolve(
+			typeof this.response === "function" ? this.response(context) : this.response,
+		);
+		return this.resolvedResponse;
 	}
 }
 
@@ -102,8 +132,17 @@ export class AiSdkResponse {
 	}
 
 	static ui<UI_MESSAGE extends UIMessage = UIMessage>(
-		stream: ReadableStream<UIMessageChunk> | AiSdkUIMessageStreamSource<UI_MESSAGE>,
-		options: UIMessageStreamResponseOptions & UIMessageStreamOptions<UI_MESSAGE> = {},
+		stream: ReadableStream<InferUIMessageChunk<UI_MESSAGE>>,
+		options?: UIMessageStreamResponseOptions,
+	): AiSdkHttpResponse;
+	static ui<UI_MESSAGE extends UIMessage = UIMessage>(
+		stream: AiSdkUIMessageStreamSource<UI_MESSAGE>,
+		options?: UIMessageSourceResponseOptions<UI_MESSAGE>,
+	): AiSdkHttpResponse;
+	static ui<UI_MESSAGE extends UIMessage = UIMessage>(
+		stream:
+			ReadableStream<InferUIMessageChunk<UI_MESSAGE>> | AiSdkUIMessageStreamSource<UI_MESSAGE>,
+		options: UIMessageSourceResponseOptions<UI_MESSAGE> = {},
 	): AiSdkHttpResponse {
 		const uiStream = isReadableStream(stream) ? stream : stream.toUIMessageStream(options);
 
@@ -115,10 +154,48 @@ export class AiSdkResponse {
 		);
 	}
 
-	static agent<AGENT, UI_MESSAGE extends UIMessage = InferAgentUIMessage<AGENT>>(
-		options: AiSdkAgentResponseOptions<AGENT, UI_MESSAGE>,
+	static agent<
+		CALL_OPTIONS = never,
+		TOOLS extends ToolSet = {},
+		RUNTIME_CONTEXT extends Record<string, unknown> = Record<string, unknown>,
+		OUTPUT extends Output.Output = never,
+		MESSAGE_METADATA = unknown,
+	>(
+		options: AiSdkAgentResponseOptions<
+			CALL_OPTIONS,
+			TOOLS,
+			RUNTIME_CONTEXT,
+			OUTPUT,
+			MESSAGE_METADATA
+		>,
 	): AiSdkHttpResponse {
-		return AiSdkResponse.from(invokeAgentResponseHelper(options));
+		return new AiSdkHttpResponse((context) => {
+			const abortSignal = combineAbortSignals(options.abortSignal, context.abortSignal);
+			const { onStepEnd, onStepFinish, ...responseOptions } = options;
+			return createAgentUIStreamResponse<
+				CALL_OPTIONS,
+				TOOLS,
+				RUNTIME_CONTEXT,
+				OUTPUT,
+				MESSAGE_METADATA
+			>({
+				...responseOptions,
+				abortSignal,
+				// AI SDK's agent response helper currently widens this callback's
+				// runtime context to its base record. The agent still emits the
+				// concrete runtime context accepted by the public wrapper type.
+				onStepEnd:
+					onStepEnd === undefined && onStepFinish === undefined
+						? undefined
+						: (event) =>
+								(onStepEnd ?? onStepFinish)?.({
+									...event,
+									runtimeContext: event.runtimeContext as RUNTIME_CONTEXT,
+								}),
+				consumeSseStream:
+					options.consumeSseStream ?? (abortSignal === undefined ? undefined : consumeStream),
+			});
+		});
 	}
 }
 
@@ -132,12 +209,5 @@ export function isAiSdkHttpResponse(value: unknown): value is AiSdkHttpResponse 
 }
 
 function isReadableStream<T>(value: ReadableStream<T> | object): value is ReadableStream<T> {
-	return typeof (value as { getReader?: unknown }).getReader === "function";
-}
-
-function invokeAgentResponseHelper(options: unknown): Promise<Response> {
-	const helper = createAgentUIStreamResponse as unknown as (
-		responseOptions: unknown,
-	) => Promise<Response>;
-	return helper(options);
+	return "getReader" in value && typeof value.getReader === "function";
 }

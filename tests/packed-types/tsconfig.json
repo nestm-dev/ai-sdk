@@ -11,5 +11,5 @@
 		"noEmit": true,
 		"skipLibCheck": true
 	},
-	"include": ["consumer.ts"]
+	"include": ["artifact-studio-v7.ts", "consumer.ts"]
 }

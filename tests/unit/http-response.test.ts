@@ -1,5 +1,6 @@
 import type { UIMessageChunk } from "ai";
-import { streamText } from "ai";
+import { streamText, ToolLoopAgent } from "ai";
+import { MockLanguageModelV4 } from "ai/test";
 import { describe, expect, it } from "vitest";
 import { AiSdkHttpResponse, AiSdkResponse, isAiSdkHttpResponse } from "../../src/http/index.js";
 
@@ -52,6 +53,49 @@ describe("AiSdkResponse", () => {
 		};
 
 		expect(acceptResult).toBeTypeOf("function");
+	});
+
+	it("defers agent execution and forwards the HTTP lifecycle signal", async () => {
+		let providerSignal: AbortSignal | undefined;
+		const model = new MockLanguageModelV4({
+			doStream: async ({ abortSignal }) => {
+				providerSignal = abortSignal;
+				return {
+					stream: valueStream([
+						{ type: "stream-start" as const, warnings: [] },
+						{ type: "text-start" as const, id: "text-1" },
+						{ type: "text-delta" as const, id: "text-1", delta: "hello" },
+						{ type: "text-end" as const, id: "text-1" },
+						{
+							type: "finish" as const,
+							finishReason: { unified: "stop" as const, raw: undefined },
+							usage: {
+								inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
+								outputTokens: { total: 1, text: 1, reasoning: 0 },
+							},
+						},
+					]),
+				};
+			},
+		});
+		const responseResult = AiSdkResponse.agent({
+			agent: new ToolLoopAgent({ model }),
+			uiMessages: [
+				{
+					id: "user-1",
+					role: "user",
+					parts: [{ type: "text", text: "hello" }],
+				},
+			],
+		});
+		const http = new AbortController();
+
+		expect(providerSignal).toBeUndefined();
+		const response = await responseResult.resolve({ abortSignal: http.signal });
+		expect(await responseResult.resolve()).toBe(response);
+		await response.text();
+
+		expect(providerSignal).toBe(http.signal);
 	});
 });
 

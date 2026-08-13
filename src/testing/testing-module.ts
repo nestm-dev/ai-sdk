@@ -1,6 +1,6 @@
 import type { DynamicModule } from "@nestjs/common";
 import { AiSdkModule } from "../ai-sdk.module.js";
-import type { AiSdkDefaults } from "../ai-sdk.types.js";
+import type { AiSdkDefaults, AiSdkRequestDefaults } from "../ai-sdk.types.js";
 import {
 	createMockAiProvider,
 	type CreateMockAiProviderOptions,
@@ -14,6 +14,8 @@ export interface AiSdkTestingModuleOptions {
 	provider?: MockAiProviderV4 | CreateMockAiProviderOptions;
 	/** Overrides for the generated direct-model and upload defaults. */
 	defaults?: AiSdkDefaults;
+	/** Request defaults applied by the `AiSdkService` façade. */
+	requestDefaults?: AiSdkRequestDefaults;
 	/** Testing modules are local by default to prevent cross-test leakage. */
 	isGlobal?: boolean;
 }
@@ -38,6 +40,7 @@ export function createAiSdkTestingModule(options: AiSdkTestingModuleOptions = {}
 
 	return AiSdkModule.forRoot({
 		providers: { [providerName]: provider },
+		requestDefaults: options.requestDefaults,
 		defaults: {
 			language: defaults?.language ?? provider.languageModel("default"),
 			embedding: defaults?.embedding ?? provider.embeddingModel("default"),

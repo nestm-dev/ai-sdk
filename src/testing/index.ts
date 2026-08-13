@@ -40,6 +40,7 @@ export {
 	overrideAiSdkImageModel,
 	overrideAiSdkLanguageModel,
 	overrideAiSdkRegistry,
+	overrideAiSdkRequestDefaults,
 	overrideAiSdkRerankingModel,
 	overrideAiSdkResolvedDefaults,
 	overrideAiSdkSkills,
