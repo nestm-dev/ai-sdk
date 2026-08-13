@@ -31,6 +31,14 @@ defineAiSdkConfig<typeof registry>({
 defineAiSdkConfig({
 	providers: { local: provider },
 	registryOptions: { separator: "/" },
+	requestDefaults: {
+		maxRetries: 1,
+		timeout: {
+			totalMs: 30_000,
+			chunkMs: 5_000,
+			tools: { echoMs: 1_000 },
+		},
+	},
 	defaults: { language: "local/chat" },
 });
 
@@ -53,8 +61,22 @@ defineAiSdkConfig<{ local: typeof provider }, ":">({
 
 declare const service: AiSdkService<typeof registry>;
 service.languageModel("local/chat");
+service.embeddingModel("local/embedding");
+service.imageModel("local/image");
+service.transcriptionModel("local/transcription");
+service.speechModel("local/speech");
+service.rerankingModel("local/reranking");
+service.videoModel("local/video");
+service.files("local");
+service.skills("local");
 // @ts-expect-error the configured registry uses a slash separator
 service.languageModel("local:chat");
+// @ts-expect-error registry model references require a registered provider prefix
+service.embeddingModel("missing/embedding");
+// @ts-expect-error files references are provider names, not model references
+service.files("local/file");
+// @ts-expect-error skills references preserve the registered provider names
+service.skills("missing");
 
 const tools = {
 	echo: tool({
@@ -141,6 +163,15 @@ type Equal<LEFT, RIGHT> =
 		? true
 		: false;
 type Assert<TYPE extends true> = TYPE;
+type _RegisteredModelReferenceIsExact = Assert<
+	Equal<Parameters<typeof service.languageModel>[0], `local/${string}` | undefined>
+>;
+type _RegisteredFilesReferenceIsExact = Assert<
+	Equal<Parameters<typeof service.files>[0], "local" | undefined>
+>;
+type _RegisteredSkillsReferenceIsExact = Assert<
+	Equal<Parameters<typeof service.skills>[0], "local" | undefined>
+>;
 type AiSdkFacadeOperation =
 	| "generateText"
 	| "streamText"

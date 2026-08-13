@@ -7,6 +7,7 @@ import {
 	AI_SDK_IMAGE_MODEL,
 	AI_SDK_LANGUAGE_MODEL,
 	AI_SDK_REGISTRY,
+	AI_SDK_REQUEST_DEFAULTS,
 	AI_SDK_RERANKING_MODEL,
 	AI_SDK_RESOLVED_DEFAULTS,
 	AI_SDK_SKILLS,
@@ -26,6 +27,7 @@ import type {
 	AiSdkDirectVideoModel,
 	AiSdkFiles,
 	AiSdkRegistry,
+	AiSdkRequestDefaults,
 	AiSdkSkills,
 } from "../ai-sdk.types.js";
 
@@ -56,6 +58,13 @@ export function overrideAiSdkResolvedDefaults<BUILDER extends AiSdkTestingOverri
 	defaults: AiSdkResolvedDefaults,
 ): BUILDER {
 	return overrideValue(builder, AI_SDK_RESOLVED_DEFAULTS, defaults);
+}
+
+export function overrideAiSdkRequestDefaults<BUILDER extends AiSdkTestingOverrideBuilder>(
+	builder: BUILDER,
+	defaults: AiSdkRequestDefaults,
+): BUILDER {
+	return overrideValue(builder, AI_SDK_REQUEST_DEFAULTS, defaults);
 }
 
 export function overrideAiSdkLanguageModel<BUILDER extends AiSdkTestingOverrideBuilder>(

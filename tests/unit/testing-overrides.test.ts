@@ -1,10 +1,15 @@
 import { Test } from "@nestjs/testing";
-import { AI_SDK_LANGUAGE_MODEL, getAiToolsetToken } from "../../src/ai-sdk.tokens.js";
+import {
+	AI_SDK_LANGUAGE_MODEL,
+	AI_SDK_REQUEST_DEFAULTS,
+	getAiToolsetToken,
+} from "../../src/ai-sdk.tokens.js";
 import { AiSdkService } from "../../src/ai-sdk.service.js";
 import {
 	MockLanguageModelV4,
 	createAiSdkTestingModule,
 	overrideAiSdkLanguageModel,
+	overrideAiSdkRequestDefaults,
 	overrideAiSdkToolset,
 } from "../../src/testing/index.js";
 import { describe, expect, it } from "vitest";
@@ -69,6 +74,18 @@ describe("Nest testing overrides", () => {
 		const module = await builder.compile();
 
 		expect(module.get(token)).toBe(tools);
+		await module.close();
+	});
+
+	it("overrides request defaults", async () => {
+		const builder = Test.createTestingModule({
+			providers: [{ provide: AI_SDK_REQUEST_DEFAULTS, useValue: { maxRetries: 2 } }],
+		});
+
+		overrideAiSdkRequestDefaults(builder, { maxRetries: 0, timeout: 250 });
+		const module = await builder.compile();
+
+		expect(module.get(AI_SDK_REQUEST_DEFAULTS)).toEqual({ maxRetries: 0, timeout: 250 });
 		await module.close();
 	});
 });

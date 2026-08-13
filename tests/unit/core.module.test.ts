@@ -192,14 +192,23 @@ describe("AiSdkModule core registration", () => {
 		const service = testingModule.get(AiSdkService);
 
 		expect(service.languageModel().modelId).toBe("middleware-language");
+		expect(service.languageModel("fixture/language").modelId).toBe("middleware-language");
 		expect(service.embeddingModel()).toBe(models.embedding);
+		expect(service.embeddingModel("fixture/embedding")).toBe(models.embedding);
 		expect(service.imageModel()).toBe(models.image);
+		expect(service.imageModel("fixture/image")).toBe(models.image);
 		expect(service.transcriptionModel()).toBe(models.transcription);
+		expect(service.transcriptionModel("fixture/transcription")).toBe(models.transcription);
 		expect(service.speechModel()).toBe(models.speech);
+		expect(service.speechModel("fixture/speech")).toBe(models.speech);
 		expect(service.rerankingModel()).toBe(models.reranking);
+		expect(service.rerankingModel("fixture/reranking")).toBe(models.reranking);
 		expect(service.videoModel()).toBe(models.video);
+		expect(service.videoModel("fixture/video")).toBe(models.video);
 		expect(service.files()).toBe(fixtureFiles);
+		expect(service.files("fixture")).toBe(fixtureFiles);
 		expect(service.skills()).toBe(fixtureSkills);
+		expect(service.skills("fixture")).toBe(fixtureSkills);
 		await testingModule.close();
 	});
 

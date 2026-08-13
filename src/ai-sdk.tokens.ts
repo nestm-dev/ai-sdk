@@ -1,6 +1,7 @@
 export const AI_SDK_MODULE_OPTIONS = Symbol.for("@nestm/ai-sdk:module-options");
 export const AI_SDK_REGISTRY = Symbol.for("@nestm/ai-sdk:registry");
 export const AI_SDK_RESOLVED_DEFAULTS = Symbol.for("@nestm/ai-sdk:resolved-defaults");
+export const AI_SDK_REQUEST_DEFAULTS = Symbol.for("@nestm/ai-sdk:request-defaults");
 
 export const AI_SDK_LANGUAGE_MODEL = Symbol.for("@nestm/ai-sdk:model:language");
 export const AI_SDK_EMBEDDING_MODEL = Symbol.for("@nestm/ai-sdk:model:embedding");

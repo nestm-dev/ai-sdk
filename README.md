@@ -6,7 +6,7 @@ HTTP responses without hiding the upstream APIs.
 
 - `AiSdkModule.forRoot()` and `forRootAsync()` with provider registries or zero configuration
 - Optional eager defaults for every AI SDK model modality plus files and skills
-- `AiSdkService` façades that preserve the exact upstream call signatures
+- `AiSdkService` façades that preserve exact upstream signatures with optional request defaults
 - Decorated Nest providers with `@AiToolset()` and `@AiTool()`
 - Named toolsets and agents with `useValue`, `useFactory`, `useClass`, and `useExisting`
 - Express and Fastify response streaming through `@nestm/ai-sdk/http`
@@ -192,6 +192,50 @@ AiSdkModule.forRootAsync({
 
 For class-based configuration, implement `AiSdkOptionsFactory.createAiSdkOptions()`.
 
+### Request defaults and resilience
+
+AI SDK already retries retryable provider calls twice by default. Use `requestDefaults` when the
+application needs one validated policy for calls made through `AiSdkService`:
+
+```ts
+AiSdkModule.forRoot({
+	providers: { gateway },
+	requestDefaults: {
+		maxRetries: 1,
+		timeout: {
+			totalMs: 60_000,
+			stepMs: 20_000,
+			firstChunkMs: 10_000,
+			chunkMs: 15_000,
+			toolMs: 20_000,
+			tools: { workspace_write_fileMs: 10_000 },
+		},
+	},
+});
+```
+
+The module validates these values during bootstrap and copies the configuration so later mutation
+cannot change a running service. `generateText` and `streamText` receive AI SDK 7's native timeout
+configuration; streaming-only fields are omitted from `generateText`. For other operations that
+accept an `abortSignal`, a numeric timeout or `totalMs` becomes a deadline signal and is combined
+with the caller's signal. Retry defaults are applied only to upstream operations that expose
+`maxRetries`. Call-site `maxRetries` and text `timeout` values take precedence.
+
+AI SDK 7 does not expose retry or cancellation options for `uploadFile` and `uploadSkill`, so the
+package leaves those calls unchanged. A reusable default abort signal is also deliberately rejected
+as a design: once aborted, a singleton signal would cancel every later request.
+
+Named `ToolLoopAgent` settings remain explicit because they can have different cost and side-effect
+budgets. Set `maxRetries` while constructing the agent, then set a total/step/chunk/tool `timeout` or
+`abortSignal` on each `agent.generate()` / `agent.stream()` call. `AiSdkResponse.agent()` composes its
+signal with the Nest HTTP connection automatically, so an Express or Fastify disconnect aborts the
+upstream agent and its tools.
+
+Retries cover retryable provider requests; they are not a substitute for idempotency in mutating
+tools. Follow the native [AI SDK settings](https://ai-sdk.dev/docs/ai-sdk-core/settings) and inspect
+failures with native guards such as `RetryError.isInstance(error)` and
+`APICallError.isInstance(error)`. The wrapper never replaces provider errors.
+
 ### Application-wide registry typing
 
 `defineAiSdkConfig()` preserves literal providers and separators. To make a registry the default
@@ -252,10 +296,10 @@ for each default: `@InjectAiLanguageModel()`, `@InjectAiEmbeddingModel()`, `@Inj
 | Streaming speech         | `experimental_streamTranscribe`, `experimental_streamTranslate` |
 | Telemetry registration   | `registerTelemetry`                                             |
 
-The module does not merge operation options. Models, tools, structured output, retries, timeouts,
-headers, provider options, callbacks, telemetry, sandbox settings, approvals, and runtime context stay
-visible at each call site. Errors thrown by AI SDK or providers pass through unchanged; only module
-configuration failures use `AiSdkConfigurationError`.
+Except for optional `requestDefaults`, models, tools, structured output, headers, provider options,
+callbacks, telemetry, sandbox settings, approvals, and runtime context stay visible at each call
+site. Errors thrown by AI SDK or providers pass through unchanged; only module configuration
+failures use `AiSdkConfigurationError`.
 
 ## Toolsets
 
@@ -344,14 +388,19 @@ Import the optional HTTP integration once. It installs an interceptor that recog
 `AiSdkHttpResponse` results; normal Nest controller values are unchanged.
 
 ```ts
+import { AiSdkService, InjectAiAgent, type AiSdkAgent } from "@nestm/ai-sdk";
 import { AiSdkHttpModule, AiSdkResponse } from "@nestm/ai-sdk/http";
+import type { UIMessage } from "ai";
 
 @Module({ imports: [AiSdkHttpModule.register()] })
 export class HttpModule {}
 
 @Controller("ai")
 export class AiController {
-	constructor(private readonly ai: AiSdkService) {}
+	constructor(
+		private readonly ai: AiSdkService,
+		@InjectAiAgent("support") private readonly agent: AiSdkAgent,
+	) {}
 
 	@Post("text")
 	text(@Body("prompt") prompt: string) {
@@ -374,10 +423,27 @@ export class AiController {
 - `AiSdkResponse.ui(stream, options)` creates an AI SDK UI-message stream response.
 - `AiSdkResponse.agent(options)` runs an agent and creates its UI-message stream response.
 
+`AiSdkResponse.agent()` derives its accepted UI messages, metadata callbacks, tools, call options,
+runtime context, and output directly from the concrete agent. This matches AI SDK 7's agent helper:
+agent responses do not advertise custom `data-*` parts that the upstream helper cannot emit. Compose
+a custom UI-message stream and pass it to `AiSdkResponse.ui()` when application-specific data parts
+are required. The raw-chunk `ui()` overload accepts response initialization only; conversion
+callbacks such as `messageMetadata` and `onFinish` belong on a source with `toUIMessageStream()`.
+
 The bridge preserves status, status text, headers, multiple `Set-Cookie` values, binary chunks,
 backpressure, and disconnect cancellation for Express and Fastify. Errors before headers are sent
 remain available to Nest's exception pipeline; errors after a stream is committed terminate the
-connection. For custom integrations, inject `AiSdkResponseSender` or call `sendAiSdkResponse()`.
+connection. Agent responses are created lazily after the interceptor has bound the socket lifecycle;
+the connection signal is composed with an explicit `abortSignal`, and AI SDK's `consumeStream`
+integration ensures abort finalizers run. The abort reason is an `AiSdkHttpDisconnectError`. For
+custom integrations, inject `AiSdkResponseSender`, call `sendAiSdkResponse()`, or pass an
+`AiSdkHttpResponseContext` to `response.resolve(context)`.
+
+Once streaming starts, AI SDK stream failures are normally delivered through `onError` and stream
+parts instead of being thrown synchronously. Log the original `unknown` error server-side and return
+only a safe client message. When creating a UI stream outside `AiSdkResponse.agent()`, follow AI
+SDK's [stream abort guidance](https://ai-sdk.dev/docs/troubleshooting/stream-abort-handling) and
+provide `consumeSseStream: consumeStream` when an abort signal controls the upstream operation.
 
 ## AI SDK Harness orchestration
 
@@ -453,7 +519,11 @@ import {
 } from "@nestm/ai-sdk/testing";
 
 const builder = Test.createTestingModule({
-	imports: [createAiSdkTestingModule()],
+	imports: [
+		createAiSdkTestingModule({
+			requestDefaults: { maxRetries: 0, timeout: 5_000 },
+		}),
+	],
 	providers: [SummaryService],
 });
 

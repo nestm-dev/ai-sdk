@@ -1,8 +1,9 @@
 import { Output, ToolLoopAgent, tool } from "ai";
-import type { Agent, InferAgentUIMessage, ToolSet } from "ai";
+import type { Agent, InferAgentUIMessage, InferUIMessageChunk, ToolSet, UIMessage } from "ai";
 import { MockLanguageModelV4 } from "ai/test";
 import { z } from "zod";
 import { AiSdkResponse } from "../../src/http/index.ts";
+import type { AiSdkUIMessageStreamSource } from "../../src/http/index.ts";
 
 const tools = {
 	echo: tool({
@@ -23,7 +24,7 @@ const agent = new ToolLoopAgent({
 	callOptionsSchema: z.object({ tone: z.enum(["brief", "detailed"]) }),
 });
 
-AiSdkResponse.agent({
+const response = AiSdkResponse.agent({
 	agent,
 	uiMessages: [],
 	options: { tone: "brief" },
@@ -39,6 +40,42 @@ AiSdkResponse.agent({
 		>;
 	},
 });
+
+type MetadataUIMessage = UIMessage<{ model: string }>;
+const metadataChunks = new ReadableStream<InferUIMessageChunk<MetadataUIMessage>>();
+AiSdkResponse.ui<MetadataUIMessage>(metadataChunks, { status: 200 });
+// @ts-expect-error raw UI message chunks are already assembled, so conversion callbacks do not run
+AiSdkResponse.ui<MetadataUIMessage>(metadataChunks, {
+	onFinish: () => undefined,
+});
+const sourceWithMetadata: AiSdkUIMessageStreamSource<MetadataUIMessage> = {
+	toUIMessageStream: (_options) => metadataChunks,
+};
+AiSdkResponse.ui<MetadataUIMessage>(sourceWithMetadata, {
+	onFinish: ({ responseMessage }) => {
+		const model: string | undefined = responseMessage.metadata?.model;
+		void model;
+	},
+});
+
+const metadataMessages: InferAgentUIMessage<
+	typeof agent,
+	{ model: string; durationMs?: number }
+>[] = [];
+AiSdkResponse.agent({
+	agent,
+	options: { tone: "brief" },
+	uiMessages: metadataMessages,
+	onFinish: ({ responseMessage }) => {
+		const model: string | undefined = responseMessage.metadata?.model;
+		const durationMs: number | undefined = responseMessage.metadata?.durationMs;
+		void model;
+		void durationMs;
+	},
+});
+void response.resolve({ abortSignal: new AbortController().signal });
+// @ts-expect-error response contexts require a real AbortSignal
+void response.resolve({ abortSignal: "cancel" });
 
 AiSdkResponse.agent({
 	agent,

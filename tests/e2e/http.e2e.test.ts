@@ -36,6 +36,7 @@ function createCancellationProbe(): CancellationProbe {
 }
 
 let disconnectProbe = createCancellationProbe();
+let agentDisconnectProbe = createCancellationProbe();
 
 @Controller("http")
 class HttpTestController {
@@ -163,6 +164,44 @@ class HttpTestController {
 
 		return AiSdkResponse.from(new Response(body, { headers: { "content-type": "text/plain" } }));
 	}
+
+	@Get("agent-disconnect")
+	agentDisconnect(): AiSdkHttpResponse {
+		const model = new MockLanguageModelV4({
+			doStream: async ({ abortSignal }) => ({
+				stream: new ReadableStream({
+					start(controller) {
+						controller.enqueue({ type: "stream-start" as const, warnings: [] });
+						controller.enqueue({ type: "text-start" as const, id: "text-1" });
+						controller.enqueue({
+							type: "text-delta" as const,
+							id: "text-1",
+							delta: "connected",
+						});
+						abortSignal?.addEventListener(
+							"abort",
+							() => {
+								agentDisconnectProbe.resolve();
+								controller.error(abortSignal.reason);
+							},
+							{ once: true },
+						);
+					},
+				}),
+			}),
+		});
+
+		return AiSdkResponse.agent({
+			agent: new ToolLoopAgent({ model }),
+			uiMessages: [
+				{
+					id: "user-1",
+					role: "user",
+					parts: [{ type: "text", text: "hello" }],
+				},
+			],
+		});
+	}
 }
 
 @Module({
@@ -281,6 +320,22 @@ describe(`AI SDK HTTP bridge (${testHttpAdapter})`, () => {
 
 		await expect(pendingRead).rejects.toThrow();
 		await settleWithin(disconnectProbe.cancelled, 5_000);
+	});
+
+	it("aborts upstream agent work when the network client disconnects", async () => {
+		agentDisconnectProbe = createCancellationProbe();
+		const abortController = new AbortController();
+		const response = await fetch(`${baseUrl}/http/agent-disconnect`, {
+			signal: abortController.signal,
+		});
+		const reader = response.body?.getReader();
+		if (reader === undefined) throw new Error("Expected a streamed response body");
+
+		const first = await reader.read();
+		expect(first.done).toBe(false);
+		abortController.abort();
+
+		await settleWithin(agentDisconnectProbe.cancelled, 5_000);
 	});
 });
 

@@ -81,12 +81,14 @@ export async function sendAiSdkResponse(
 	}
 
 	const reader = fetchResponse.body.getReader();
+	const disconnectController = new AbortController();
 	const cancel = (reason?: unknown): void => {
 		if (state.completed || state.disconnected) {
 			return;
 		}
 
 		state.disconnected = true;
+		disconnectController.abort(reason);
 		void reader.cancel(reason).catch(() => undefined);
 	};
 	const onClose = (): void => cancel();
@@ -112,7 +114,7 @@ export async function sendAiSdkResponse(
 
 		while (!result.done) {
 			if (!target.response.write(result.value)) {
-				await waitForDrain(target.response, state);
+				await waitForDrain(target.response, state, disconnectController.signal);
 			}
 			target.response.flush?.();
 
@@ -265,12 +267,20 @@ function resolveRequest(value: unknown): RequestLike | undefined {
 	return isRequestLike(value) ? value : undefined;
 }
 
-function waitForDrain(response: NodeResponseLike, state: TransferState): Promise<void> {
+function waitForDrain(
+	response: NodeResponseLike,
+	state: TransferState,
+	disconnectSignal: AbortSignal,
+): Promise<void> {
+	if (state.disconnected || disconnectSignal.aborted) return Promise.resolve();
+	if (state.terminalError !== undefined) return Promise.reject(state.terminalError);
+
 	return new Promise((resolve, reject) => {
 		const cleanup = (): void => {
 			removeListener(response, "drain", onDrain);
 			removeListener(response, "close", onClose);
 			removeListener(response, "error", onError);
+			disconnectSignal.removeEventListener("abort", onAbort);
 		};
 		const onDrain = (): void => {
 			cleanup();
@@ -286,10 +296,17 @@ function waitForDrain(response: NodeResponseLike, state: TransferState): Promise
 			state.terminalError = error;
 			reject(error);
 		};
+		const onAbort = (): void => {
+			cleanup();
+			state.disconnected = true;
+			resolve();
+		};
 
 		response.once("drain", onDrain);
 		response.once("close", onClose);
 		response.once("error", onError);
+		disconnectSignal.addEventListener("abort", onAbort, { once: true });
+		if (disconnectSignal.aborted) onAbort();
 	});
 }
 

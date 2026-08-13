@@ -5,7 +5,9 @@ import type {
 	ProviderRegistryProvider,
 	RerankingModel,
 	SpeechModel,
+	TimeoutConfiguration,
 	TranscriptionModel,
+	ToolSet,
 } from "ai";
 import { createProviderRegistry, experimental_generateVideo } from "ai";
 
@@ -64,8 +66,21 @@ export interface AiSdkDefaults<REGISTRY extends AiSdkRegistry = AiSdkRegistry> {
 	skills?: AiSdkRegistryModelId<REGISTRY, "skills"> | AiSdkSkills;
 }
 
+/**
+ * Request controls applied by {@link AiSdkService} when a call does not
+ * provide its own value.
+ *
+ * A default abort signal is intentionally not supported: module options are
+ * singleton state and an aborted signal cannot be reused safely across calls.
+ */
+export interface AiSdkRequestDefaults {
+	readonly maxRetries?: number;
+	readonly timeout?: TimeoutConfiguration<ToolSet>;
+}
+
 interface AiSdkBaseModuleOptions<REGISTRY extends AiSdkRegistry> {
 	defaults?: AiSdkDefaults<REGISTRY>;
+	requestDefaults?: AiSdkRequestDefaults;
 }
 
 export type AiSdkRegistryModuleOptions<REGISTRY extends AiSdkRegistry> =
@@ -88,6 +103,7 @@ export interface AiSdkZeroConfigModuleOptions {
 	registry?: undefined;
 	providers?: undefined;
 	registryOptions?: never;
+	requestDefaults?: AiSdkRequestDefaults;
 	defaults?: {
 		language?: AiSdkDirectLanguageModel;
 		embedding?: AiSdkDirectEmbeddingModel;
