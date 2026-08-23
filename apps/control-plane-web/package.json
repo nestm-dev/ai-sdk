@@ -1,0 +1,48 @@
+{
+	"name": "@nestm/ai-sdk-control-plane-web",
+	"version": "0.1.0",
+	"private": true,
+	"engines": {
+		"node": ">=22.13.0"
+	},
+	"scripts": {
+		"dev": "vinext dev",
+		"build": "vinext build",
+		"start": "vinext start --hostname 127.0.0.1",
+		"lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"check": "pnpm run lint && pnpm run typecheck && pnpm run test",
+		"verify": "pnpm run check && pnpm run build"
+	},
+	"dependencies": {
+		"@nestm/ai-sdk": "workspace:*",
+		"@tanstack/react-query": "5.101.4",
+		"lucide-react": "1.31.0",
+		"next": "16.2.6",
+		"react": "19.2.6",
+		"react-dom": "19.2.6",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "4.2.1",
+		"@types/node": "22.19.19",
+		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
+		"@vitest/coverage-v8": "4.1.10",
+		"@testing-library/jest-dom": "6.9.1",
+		"@testing-library/react": "16.3.2",
+		"jsdom": "28.1.0",
+		"@vitejs/plugin-react": "6.0.2",
+		"@vitejs/plugin-rsc": "0.5.26",
+		"eslint": "9.39.4",
+		"eslint-config-next": "16.2.6",
+		"react-server-dom-webpack": "19.2.6",
+		"tailwindcss": "4.2.1",
+		"typescript": "5.9.3",
+		"vinext": "1.0.0-beta.3",
+		"vite": "8.0.16",
+		"vitest": "4.1.10"
+	},
+	"type": "module"
+}

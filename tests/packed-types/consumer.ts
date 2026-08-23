@@ -23,6 +23,22 @@ import {
 	InMemoryAiSdkHarnessSessionStore,
 } from "@nestm/ai-sdk/harness/testing";
 import {
+	AiSdkObservabilityModule,
+	AiSdkObservabilityService,
+	AiSdkObservabilityTelemetryModule,
+	initializeAiSdkTelemetry,
+} from "@nestm/ai-sdk/observability";
+import {
+	InMemoryAiObservabilityCollector,
+	type AiObservabilityEvent,
+	type AiObservabilitySnapshotV1,
+} from "@nestm/ai-sdk/observability/core";
+import { AiSdkObservabilityHttpModule } from "@nestm/ai-sdk/observability/http";
+import {
+	AiSdkObservabilityTestingModule,
+	createFakeAiObservabilityClock,
+} from "@nestm/ai-sdk/observability/testing";
+import {
 	MockLanguageModelV4,
 	createAiSdkTestingModule,
 	createMockAiProvider,
@@ -99,6 +115,38 @@ const harnessRunner = new AiSdkHarnessRunner({
 	leaseManager: harnessLeases,
 });
 const testingModule = createAiSdkTestingModule({ requestDefaults: { maxRetries: 0 } });
+const observabilityClock = createFakeAiObservabilityClock(1_700_000_000_000);
+const observabilityModule = AiSdkObservabilityModule.forRoot({
+	clock: observabilityClock.now,
+	isGlobal: false,
+});
+const observabilityTelemetryModule = AiSdkObservabilityTelemetryModule.register({
+	imports: [observabilityModule],
+	registration: "manual",
+});
+const observabilityHttpModule = AiSdkObservabilityHttpModule.register({
+	imports: [observabilityModule],
+});
+const observabilityTestingModule = AiSdkObservabilityTestingModule.forRoot({
+	clock: observabilityClock,
+});
+const observabilityCollector = new InMemoryAiObservabilityCollector({
+	clock: observabilityClock.now,
+});
+const observabilityEvent = {
+	schemaVersion: 1,
+	eventId: "event",
+	entityId: "operation",
+	operationId: "operation",
+	source: "packed-types",
+	timestamp: observabilityClock.now(),
+	type: "operation.started",
+	operation: "generate-text",
+} satisfies AiObservabilityEvent;
+observabilityCollector.record([observabilityEvent]);
+const observabilitySnapshot: AiObservabilitySnapshotV1 = observabilityCollector.snapshot();
+const observabilityServiceType: typeof AiSdkObservabilityService = AiSdkObservabilityService;
+const initializeObservabilityType: typeof initializeAiSdkTelemetry = initializeAiSdkTelemetry;
 const httpResponse: AiSdkHttpResponse = AiSdkResponse.text(new ReadableStream<string>());
 void httpResponse.resolve({ abortSignal: new AbortController().signal });
 
@@ -134,6 +182,14 @@ export {
 	harnessRunner,
 	httpModule,
 	httpResponse,
+	initializeObservabilityType,
+	observabilityCollector,
+	observabilityHttpModule,
+	observabilityModule,
+	observabilityServiceType,
+	observabilitySnapshot,
+	observabilityTelemetryModule,
+	observabilityTestingModule,
 	rootModule,
 	testingModule,
 };
