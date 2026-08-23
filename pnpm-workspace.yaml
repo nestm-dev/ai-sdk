@@ -1,5 +1,6 @@
 packages:
   - "."
+  - "apps/*"
   - "examples/*"
 
 # Nest 12.0.0-alpha.* still declares ^11.0.0 peers on its own siblings.
@@ -16,6 +17,9 @@ allowBuilds:
   "@swc/core": false
   cbor-extract: false
   esbuild: false
+  sharp: false
+  unrs-resolver: false
+  workerd: true
 
 # `changeset publish` delegates to pnpm. A failed OIDC attestation must fail
 # the release rather than silently publishing without provenance.

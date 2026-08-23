@@ -14,7 +14,7 @@
 		"no-console": "error",
 		"import/no-default-export": "error"
 	},
-	"ignorePatterns": ["dist", "dist-tsc", "coverage", "examples", "references"],
+	"ignorePatterns": ["apps", "dist", "dist-tsc", "coverage", "examples", "references"],
 	"overrides": [
 		{
 			"files": ["*.config*.ts"],

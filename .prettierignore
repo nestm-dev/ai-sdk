@@ -3,6 +3,9 @@ dist-tsc
 coverage
 pnpm-lock.yaml
 references
+apps/*/.next
+apps/*/.vinext
+apps/*/.wrangler
 examples/**/dist
 examples/**/node_modules
 CHANGELOG.md

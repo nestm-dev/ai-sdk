@@ -12,6 +12,7 @@ HTTP responses without hiding the upstream APIs.
 - Express and Fastify response streaming through `@nestm/ai-sdk/http`
 - Full AI SDK V4 mocks and Nest overrides through `@nestm/ai-sdk/testing`
 - Experimental, fenced Harness orchestration through `@nestm/ai-sdk/harness`
+- Optional bounded, content-free telemetry through `@nestm/ai-sdk/observability`
 
 Provider SDKs remain application-owned. Install and configure only the providers your application
 uses; this package does not depend on OpenAI, Anthropic, Google, MCP, or another concrete provider.
@@ -20,7 +21,7 @@ uses; this package does not depend on OpenAI, Anthropic, Google, MCP, or another
 
 - Node 22.12 or newer
 - NestJS `^12.0.0-alpha.5`
-- AI SDK `>=7 <8`
+- AI SDK `>=7.0.52 <8`
 - ESM
 
 The optional Harness entrypoint currently requires the exact compatibility pair `ai@7.0.52` and
@@ -506,6 +507,172 @@ The tested candidate train is `ai@7.0.52`, `@ai-sdk/harness@1.0.58`,
 `@ai-sdk/sandbox-vercel@1.0.58`. `@ai-sdk/workflow-harness` is deliberately not exported: its
 time-slice continuation can contain the same bridge credential and is not safe for durable storage.
 
+## Optional observability
+
+Observability is an explicit capability of this package, not a separate service or an automatic
+side effect of `AiSdkModule`. The root `@nestm/ai-sdk` entry point does not export or load it. Import
+only the layers an application needs:
+
+| Entry point                           | Purpose                                                    |
+| ------------------------------------- | ---------------------------------------------------------- |
+| `@nestm/ai-sdk/observability`         | Nest collector, service, and optional AI SDK telemetry hub |
+| `@nestm/ai-sdk/observability/core`    | Framework-neutral events and bounded in-memory aggregation |
+| `@nestm/ai-sdk/observability/http`    | Read-only, platform-neutral Nest snapshot controller       |
+| `@nestm/ai-sdk/observability/testing` | Deterministic clock and local-scope Nest testing module    |
+
+The event and snapshot schemas are deliberately content-free. Prompts, generated output,
+reasoning, tool arguments and results, request headers, provider metadata, raw errors, user IDs,
+and tenant IDs are not accepted by the neutral contracts and are never copied into snapshots.
+Correlation IDs exist only in bounded in-flight and replay maps and are not projected.
+
+### Explicit Nest and AI SDK registration
+
+Register the process-local collector and the AI SDK bridge separately. This keeps telemetry off
+unless the application has deliberately opted into both pieces:
+
+```ts
+import { Module } from "@nestjs/common";
+import { AiSdkModule } from "@nestm/ai-sdk";
+import {
+	AiSdkObservabilityModule,
+	AiSdkObservabilityTelemetryModule,
+} from "@nestm/ai-sdk/observability";
+import { AiSdkObservabilityHttpModule } from "@nestm/ai-sdk/observability/http";
+
+@Module({
+	imports: [
+		AiSdkModule.forRoot(),
+		AiSdkObservabilityModule.forRoot({
+			activeTtlMs: 60 * 60_000,
+			maxOperationGroups: 100,
+			maxModelGroups: 100,
+			maxToolGroups: 100,
+		}),
+		AiSdkObservabilityTelemetryModule.register({ registration: "global" }),
+		AiSdkObservabilityHttpModule,
+	],
+})
+export class AppModule {}
+```
+
+Global telemetry is provisionally attached during Nest construction so later initialization hooks
+are visible, but ownership is committed only after the complete Nest initialization transaction
+succeeds. Use the helper instead of calling `app.init()` separately; it rolls back a failed
+candidate and prevents two active global collectors from silently receiving the same events:
+
+```ts
+import { NestFactory } from "@nestjs/core";
+import { initializeAiSdkTelemetry } from "@nestm/ai-sdk/observability";
+
+const app = await NestFactory.create(AppModule);
+await initializeAiSdkTelemetry(app);
+await app.listen(3000);
+```
+
+Calls still execute through the NestM façade. Stable `functionId` values group logical features,
+while both upstream content-recording switches remain disabled:
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { AiSdkService } from "@nestm/ai-sdk";
+
+@Injectable()
+export class SummaryService {
+	constructor(private readonly ai: AiSdkService) {}
+
+	run(prompt: string) {
+		return this.ai.generateText({
+			model: this.ai.languageModel(),
+			prompt,
+			telemetry: {
+				isEnabled: true,
+				functionId: "summary",
+				recordInputs: false,
+				recordOutputs: false,
+			},
+		});
+	}
+}
+```
+
+The NestM adapter discards content independently of the two recording flags. Keeping both flags
+false also protects any other integration that honors AI SDK's input/output controls. When a call
+supplies its own `telemetry.integrations`, use `composeAiSdkTelemetryOptions()` to include the NestM
+hub because AI SDK replaces, rather than extends, globally registered integrations at that call.
+Manual per-call registration is the default and is the correct mode for multiple Nest contexts in
+one process.
+
+### Bounded snapshots
+
+`AiSdkObservabilityHttpModule` exposes a read-only response with `Cache-Control: no-store`:
+
+```text
+GET /ai-observability/v1/snapshot
+```
+
+The strict v1 snapshot separates lifetime totals from a rolling 15-minute window and includes
+operation outcomes, duration estimates, normalized token categories, model time-to-first-output and
+throughput, finish reasons, bounded operation/model/tool groups, and explicit overflow, replay,
+rejected-field, signal-coverage, and abandonment diagnostics. Operation usage is the total view;
+model-call usage is its provider/model breakdown, so the two must not be added together.
+
+Aggregation has fixed ceilings for rolling buckets, dimension groups, active entities, replay
+entries, and late-outcome corrections. Excess dimensions fold into `other`; stale or excessive
+in-flight work is marked abandoned instead of growing memory without bound. The default collector
+is process-local, so multi-replica applications must aggregate snapshots in their own control plane.
+
+The HTTP module installs no authentication or authorization guard. Protect it with application-owned
+authentication, tenant policy, CORS, and rate limits. The endpoint contains no tenant or user
+dimension by design.
+
+### Framework-neutral events and tests
+
+Other runtimes can emit the same strict event union without importing Nest or the AI SDK:
+
+```ts
+import {
+	InMemoryAiObservabilityCollector,
+	type AiObservabilityEvent,
+} from "@nestm/ai-sdk/observability/core";
+
+const collector = new InMemoryAiObservabilityCollector();
+collector.record([
+	{
+		schemaVersion: 1,
+		eventId: "event-1",
+		entityId: "operation-1",
+		operationId: "operation-1",
+		source: "custom-runtime",
+		timestamp: Date.now(),
+		type: "operation.started",
+		operation: "agent-run",
+	} satisfies AiObservabilityEvent,
+]);
+```
+
+Tests can use `AiSdkObservabilityTestingModule` and `FakeAiObservabilityClock` for deterministic
+snapshots without contacting a provider.
+
+### Private local dashboard and multi-model playground
+
+`apps/control-plane-web` is a private reference dashboard with strict runtime schema validation,
+bounded upstream responses, last-good-snapshot retention, demo data, and coverage-aware views.
+`apps/multi-model-playground` is a private Nest app that configures `AiSdkModule` and executes OpenAI,
+Anthropic, and Google calls through `AiSdkService.generateText`. Provider failures are isolated, so
+one failed model does not discard successful comparisons.
+
+Both apps bind or connect only to loopback addresses. Provider SDKs, credentials, React, Next.js,
+TanStack Query, and the dashboard runtime remain private workspace dependencies; the apps are absent
+from package exports and published files. Copy the documented `.env.example` placeholders to your
+own ignored environment only when running locally. Never commit a real `.env.local`.
+
+```sh
+pnpm run build
+pnpm --filter @nestm/ai-sdk-playground dev
+AI_OBSERVABILITY_API_URL=http://127.0.0.1:3001 \
+	pnpm --filter @nestm/ai-sdk-control-plane-web dev
+```
+
 ## Testing
 
 The testing subpath wraps AI SDK's V4 mocks and never contacts a provider:
@@ -540,8 +707,9 @@ default modality, and named agents/toolsets.
 ## Safety and telemetry
 
 AI SDK telemetry and callbacks can contain prompts, generated content, tool arguments, and provider
-metadata. Configure `telemetry`/`experimental_telemetry` explicitly at each call and review exporters
-before enabling them for sensitive workloads.
+metadata. The optional NestM observability adapter above intentionally rejects that content, but
+other integrations may not. Configure `telemetry`/`experimental_telemetry` explicitly at each call
+and review every exporter before enabling it for sensitive workloads.
 
 Treat model-requested tool execution and approval as untrusted input. Apply application authorization,
 tenant isolation, argument validation, timeouts, and audit logging before side effects. The package
