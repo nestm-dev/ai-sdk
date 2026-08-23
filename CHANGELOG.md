@@ -1,5 +1,14 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.4
+
+### Minor Changes
+
+- ec6ce7f: Add optional, content-free AI observability through lazy `./observability`,
+  `./observability/core`, `./observability/http`, and `./observability/testing` entrypoints, including
+  bounded aggregation, explicit AI SDK telemetry registration, a snapshot projection, deterministic
+  testing utilities, and private end-to-end dashboard and multi-provider playground workspaces.
+
 ## 0.1.0-alpha.3
 
 ### Minor Changes
