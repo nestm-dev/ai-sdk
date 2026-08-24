@@ -1,5 +1,5 @@
 import { APICallError, LoadAPIKeyError } from "ai";
-import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import { HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 
 import { PROVIDER_IDS, type ProviderId } from "../config/playground-config.service.ts";
@@ -16,7 +16,7 @@ import type {
 export class MultiModelComparisonService {
 	#activeComparisons = 0;
 
-	constructor(private readonly client: AiModelClientService) {}
+	constructor(@Inject(AiModelClientService) private readonly client: AiModelClientService) {}
 
 	providers() {
 		return PROVIDER_IDS.map((provider) => this.client.describe(provider));

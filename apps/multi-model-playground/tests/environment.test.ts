@@ -20,6 +20,10 @@ describe("playground environment", () => {
 			DASHBOARD_ORIGIN: "http://127.0.0.1:3000",
 			PROVIDER_TIMEOUT_MS: 45_000,
 			MAX_OUTPUT_TOKENS: 160,
+			CHAT_STATE_DIR: ".data",
+			CHAT_RUN_TIMEOUT_MS: 120_000,
+			CHAT_REPLAY_MAX_BYTES: 4 * 1_024 * 1_024,
+			CHAT_MAX_OUTPUT_TOKENS: 2_048,
 		});
 	});
 
@@ -29,11 +33,13 @@ describe("playground environment", () => {
 			PORT: "3101",
 			PROVIDER_TIMEOUT_MS: "12000",
 			MAX_OUTPUT_TOKENS: "64",
+			CHAT_MAX_OUTPUT_TOKENS: "4096",
 		});
 
 		expect(environment.PORT).toBe(3101);
 		expect(environment.PROVIDER_TIMEOUT_MS).toBe(12_000);
 		expect(environment.MAX_OUTPUT_TOKENS).toBe(64);
+		expect(environment.CHAT_MAX_OUTPUT_TOKENS).toBe(4_096);
 	});
 
 	it("reports only invalid field names, never secret values", () => {

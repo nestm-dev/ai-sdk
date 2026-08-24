@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { AiSdkService } from "@nestm/ai-sdk";
 
 import { PlaygroundConfigService, type ProviderId } from "../config/playground-config.service.ts";
@@ -9,7 +9,9 @@ export class AiModelClientService {
 	readonly #models: Readonly<Record<ProviderId, ProviderDescription>>;
 
 	constructor(
+		@Inject(AiSdkService)
 		private readonly aiSdk: AiSdkService,
+		@Inject(PlaygroundConfigService)
 		private readonly config: PlaygroundConfigService,
 	) {
 		const openaiConfig = config.provider("openai");

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 import type { PlaygroundEnvironment } from "./environment.ts";
@@ -14,7 +14,10 @@ export interface ProviderConfiguration {
 
 @Injectable()
 export class PlaygroundConfigService {
-	constructor(private readonly values: ConfigService<PlaygroundEnvironment, true>) {}
+	constructor(
+		@Inject(ConfigService)
+		private readonly values: ConfigService<PlaygroundEnvironment, true>,
+	) {}
 
 	get port(): number {
 		return this.values.get("PORT", { infer: true });
@@ -30,6 +33,22 @@ export class PlaygroundConfigService {
 
 	get maxOutputTokens(): number {
 		return this.values.get("MAX_OUTPUT_TOKENS", { infer: true });
+	}
+
+	get chatStateDirectory(): string {
+		return this.values.get("CHAT_STATE_DIR", { infer: true });
+	}
+
+	get chatRunTimeoutMs(): number {
+		return this.values.get("CHAT_RUN_TIMEOUT_MS", { infer: true });
+	}
+
+	get chatReplayMaxBytes(): number {
+		return this.values.get("CHAT_REPLAY_MAX_BYTES", { infer: true });
+	}
+
+	get chatMaxOutputTokens(): number {
+		return this.values.get("CHAT_MAX_OUTPUT_TOKENS", { infer: true });
 	}
 
 	provider(provider: ProviderId): ProviderConfiguration {

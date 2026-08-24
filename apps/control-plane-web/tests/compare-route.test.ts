@@ -8,6 +8,30 @@ afterEach(() => {
 });
 
 describe("local comparison proxy", () => {
+	it("rejects cross-origin and non-JSON browser mutations", async () => {
+		vi.stubEnv("AI_OBSERVABILITY_API_URL", "http://127.0.0.1:3001");
+		const fetchMock = vi.fn();
+		vi.stubGlobal("fetch", fetchMock);
+
+		const crossOrigin = await POST(
+			compareRequest(
+				{ prompt: "hello" },
+				{ origin: "https://attacker.example", "sec-fetch-site": "cross-site" },
+			),
+		);
+		expect(crossOrigin.status).toBe(403);
+		expect(await crossOrigin.json()).toMatchObject({ code: "REQUEST_ORIGIN_FORBIDDEN" });
+
+		const wrongContentType = await POST(
+			compareRequest({ prompt: "hello" }, { "content-type": "text/plain" }),
+		);
+		expect(wrongContentType.status).toBe(415);
+		expect(await wrongContentType.json()).toMatchObject({
+			code: "REQUEST_CONTENT_TYPE_UNSUPPORTED",
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
 	it("requires an explicitly configured local playground", async () => {
 		vi.stubEnv("AI_OBSERVABILITY_API_URL", "");
 
@@ -89,10 +113,17 @@ describe("local comparison proxy", () => {
 	});
 });
 
-function compareRequest(body: unknown): Request {
+function compareRequest(
+	body: unknown,
+	extraHeaders: Readonly<Record<string, string>> = {},
+): Request {
 	return new Request("http://dashboard.test/api/compare", {
 		method: "POST",
-		headers: { "content-type": "application/json" },
+		headers: {
+			"content-type": "application/json",
+			origin: "http://dashboard.test",
+			...extraHeaders,
+		},
 		body: JSON.stringify(body),
 	});
 }

@@ -10,6 +10,7 @@ import {
 import { AiSdkObservabilityHttpModule } from "@nestm/ai-sdk/observability/http";
 
 import { ComparisonModule } from "./comparison/comparison.module.ts";
+import { ChatsModule } from "./chats/chats.module.ts";
 import { PlaygroundConfigModule } from "./config/playground-config.module.ts";
 import { PlaygroundConfigService } from "./config/playground-config.service.ts";
 
@@ -34,6 +35,7 @@ import { PlaygroundConfigService } from "./config/playground-config.service.ts";
 		AiSdkObservabilityModule.forRoot(),
 		AiSdkObservabilityTelemetryModule.register({ registration: "global" }),
 		AiSdkObservabilityHttpModule,
+		ChatsModule,
 		ComparisonModule,
 	],
 })

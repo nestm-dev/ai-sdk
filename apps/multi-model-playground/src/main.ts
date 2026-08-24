@@ -19,7 +19,11 @@ async function bootstrap(): Promise<void> {
 	);
 	const config = app.get(PlaygroundConfigService);
 
-	app.enableCors({ origin: config.dashboardOrigin, methods: ["GET", "POST"] });
+	app.enableCors({
+		origin: config.dashboardOrigin,
+		methods: ["GET", "POST", "PATCH", "DELETE"],
+		exposedHeaders: ["x-chat-run-id"],
+	});
 	app.enableShutdownHooks();
 	app.useGlobalFilters(new SafeExceptionFilter());
 	app.useGlobalPipes(
