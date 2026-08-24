@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common";
 import type { FastifyReply } from "fastify";
 
+import { SafeHttpException } from "./safe-http.exception.ts";
+
 @Catch()
 export class SafeExceptionFilter implements ExceptionFilter {
 	catch(exception: unknown, host: ArgumentsHost): void {
@@ -14,8 +16,8 @@ export class SafeExceptionFilter implements ExceptionFilter {
 		const status =
 			exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 		response.status(status).send({
-			code: safeCode(status),
-			message: safeMessage(status),
+			code: exception instanceof SafeHttpException ? exception.code : safeCode(status),
+			message: exception instanceof SafeHttpException ? exception.safeMessage : safeMessage(status),
 		});
 	}
 }

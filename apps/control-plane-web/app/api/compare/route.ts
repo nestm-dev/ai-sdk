@@ -1,4 +1,5 @@
 import { compareRequestSchema, comparisonSchema, PROVIDER_IDS } from "@/lib/compare-schema";
+import { mutationRequestViolation } from "@/lib/chat-proxy";
 import { localUpstreamEndpoint } from "@/lib/local-upstream";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,10 @@ const MAX_REQUEST_BYTES = 4 * 1024;
 const MAX_RESPONSE_BYTES = 1024 * 1024;
 
 export async function POST(request: Request): Promise<Response> {
+	const violation = mutationRequestViolation(request, { jsonBody: true });
+	if (violation === "origin") return safeError("REQUEST_ORIGIN_FORBIDDEN", 403);
+	if (violation === "content-type") return safeError("REQUEST_CONTENT_TYPE_UNSUPPORTED", 415);
+
 	const configuredBaseUrl = process.env.AI_OBSERVABILITY_API_URL?.trim();
 	if (!configuredBaseUrl) return safeError("PLAYGROUND_NOT_CONNECTED", 503);
 

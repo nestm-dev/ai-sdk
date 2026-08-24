@@ -25,6 +25,10 @@ const environmentSchema = z.object({
 	DASHBOARD_ORIGIN: dashboardOrigin.default("http://127.0.0.1:3000"),
 	PROVIDER_TIMEOUT_MS: environmentInteger(45_000, 1_000, 120_000),
 	MAX_OUTPUT_TOKENS: environmentInteger(160, 16, 1_024),
+	CHAT_STATE_DIR: z.string().trim().min(1).max(1_024).default(".data"),
+	CHAT_RUN_TIMEOUT_MS: environmentInteger(120_000, 5_000, 300_000),
+	CHAT_REPLAY_MAX_BYTES: environmentInteger(4 * 1_024 * 1_024, 64 * 1_024, 16 * 1_024 * 1_024),
+	CHAT_MAX_OUTPUT_TOKENS: environmentInteger(2_048, 64, 8_192),
 });
 
 export type PlaygroundEnvironment = z.infer<typeof environmentSchema>;
