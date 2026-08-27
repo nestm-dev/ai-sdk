@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 
@@ -10,22 +10,18 @@ const assembleReleasePlan = changesetsRequire("@changesets/assemble-release-plan
 const { defaultConfig } = changesetsRequire("@changesets/config");
 
 describe("resolvePrereleaseTag", () => {
-	it("tracks the initial alpha changeset through its alpha.1 release PR", () => {
+	it("tracks consumed prerelease changesets in the Changesets v3 archive", () => {
 		const packageJson = JSON.parse(
 			readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 		);
 		const preState = JSON.parse(
 			readFileSync(new URL("../.changeset/pre.json", import.meta.url), "utf8"),
 		);
-		expect(preState.initialVersions["@nestm/ai-sdk"]).toBe("0.1.0-alpha.0");
-
-		if (preState.changesets.includes("initial-ai-sdk-release")) {
-			// Changesets keeps the source file while prerelease mode is active. The
-			// prerelease state, rather than file existence, identifies consumption.
-			expect(packageJson.version).toMatch(/^0\.1\.0-alpha\.[1-9][0-9]*$/);
-		} else {
-			expect(packageJson.version).toBe("0.1.0-alpha.0");
-		}
+		expect(preState).toEqual({ mode: "pre", tag: "alpha" });
+		expect(packageJson.version).toMatch(/^0\.1\.0-alpha\.[1-9][0-9]*$/);
+		expect(
+			existsSync(new URL("../.changeset/pre/initial-ai-sdk-release.md", import.meta.url)),
+		).toBe(true);
 	});
 
 	it("assembles the pending initial changeset as alpha.1", () => {
@@ -39,7 +35,8 @@ describe("resolvePrereleaseTag", () => {
 				},
 			],
 			{
-				root: {
+				rootDir: "/virtual",
+				rootPackage: {
 					dir: "/virtual",
 					packageJson: { name: "release-plan-fixture", private: true },
 				},

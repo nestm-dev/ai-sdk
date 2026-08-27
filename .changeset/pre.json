@@ -1,16 +1,4 @@
 {
   "mode": "pre",
-  "tag": "alpha",
-  "initialVersions": {
-    "@nestm/ai-sdk": "0.1.0-alpha.0",
-    "@nestm/example-ai-sdk": "0.0.0",
-    "@nestm/ai-sdk-control-plane-web": "0.1.0",
-    "@nestm/ai-sdk-playground": "0.1.0"
-  },
-  "changesets": [
-    "curly-dodos-harness",
-    "initial-ai-sdk-release",
-    "observant-lions-watch",
-    "tough-rivers-stream"
-  ]
+  "tag": "alpha"
 }

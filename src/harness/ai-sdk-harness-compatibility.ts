@@ -1,8 +1,8 @@
 import { createRequire } from "node:module";
 import { AiSdkHarnessError } from "./ai-sdk-harness.errors.ts";
 
-const SUPPORTED_AI_VERSION = "7.0.52";
-const SUPPORTED_HARNESS_VERSION = "1.0.58";
+const SUPPORTED_AI_VERSION = "7.0.83";
+const SUPPORTED_HARNESS_VERSION = "1.0.92";
 
 export const AI_SDK_HARNESS_COMPATIBILITY = Object.freeze({
 	ai: SUPPORTED_AI_VERSION,
