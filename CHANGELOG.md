@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.5
+
+### Patch Changes
+
+- 0b2e4f9: Declare stable NestJS 12 peer support and refresh the validated AI SDK Harness dependency train.
+
 ## 0.1.0-alpha.4
 
 ### Minor Changes
