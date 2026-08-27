@@ -40,13 +40,14 @@ jobs:
       - run: pnpm exec attw --pack . --profile esm-only
       - name: Create release PR or publish to npm
         id: changesets
-        uses: changesets/action@v1
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
-          publish: pnpm run release
-          version: pnpm changeset version
-          title: "chore: release @nestm/ai-sdk"
-          commit: "chore: release @nestm/ai-sdk"
-          createGithubReleases: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          publish-script: pnpm run release
+          version-script: pnpm changeset version
+          pr-title: "chore: release @nestm/ai-sdk"
+          commit-message: "chore: release @nestm/ai-sdk"
+          create-github-releases: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Reconcile git tag with npm

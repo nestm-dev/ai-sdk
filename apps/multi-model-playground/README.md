@@ -82,7 +82,7 @@ for a new run; completed messages and the append-only SSE log remain on disk.
 
 ## Verify
 
-The workspace-only `supports-color` development pin is intentional. It keeps pnpm's optional peer
+The workspace `supports-color` development pins are intentional. They keep pnpm's optional peer
 context identical for the linked root package and this app, so Nest's `DiscoveryModule` and the
 playground bootstrap share one `@nestjs/core` instance.
 

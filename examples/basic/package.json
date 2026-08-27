@@ -11,18 +11,18 @@
 		"start": "node --env-file-if-exists=.env dist/main.js"
 	},
 	"dependencies": {
-		"@nestjs/common": "12.0.0-alpha.5",
-		"@nestjs/config": "4.0.4",
-		"@nestjs/core": "12.0.0-alpha.5",
-		"@nestjs/platform-express": "12.0.0-alpha.5",
+		"@nestjs/common": "12.0.1",
+		"@nestjs/config": "12.0.0",
+		"@nestjs/core": "12.0.1",
+		"@nestjs/platform-express": "12.0.1",
 		"@nestm/ai-sdk": "workspace:*",
-		"ai": "7.0.52",
+		"ai": "7.0.83",
 		"reflect-metadata": "0.2.2",
 		"rxjs": "7.8.2",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@types/node": "26.1.2",
+		"@types/node": "26.4.0",
 		"typescript": "7.0.2"
 	}
 }

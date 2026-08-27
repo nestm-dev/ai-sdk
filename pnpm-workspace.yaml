@@ -3,13 +3,9 @@ packages:
   - "apps/*"
   - "examples/*"
 
-# Nest 12.0.0-alpha.* still declares ^11.0.0 peers on its own siblings.
-peerDependencyRules:
-  allowedVersions:
-    "@nestjs/common": "12"
-    "@nestjs/core": "12"
-    "@nestjs/platform-express": "12"
-    "@nestjs/platform-fastify": "12"
+overrides:
+  assistant-cloud: "0.1.42"
+  postcss: "8.5.26"
 
 # @nestjs/core's postinstall is only a donation banner; never run it.
 allowBuilds:
@@ -26,6 +22,34 @@ allowBuilds:
 provenance: true
 
 minimumReleaseAgeExclude:
-  - "@ai-sdk/gateway@4.0.41"
-  - "@ai-sdk/provider-utils@5.0.21"
-  - ai@7.0.52
+  - "@ai-sdk/gateway@4.0.67"
+  - "@ai-sdk/provider-utils@5.0.32"
+  - ai@7.0.83
+  - "@ai-sdk/google@4.0.56"
+  - "@ai-sdk/harness-claude-code@1.0.96"
+  - "@ai-sdk/harness-codex@1.0.94"
+  - "@ai-sdk/harness@1.0.92"
+  - "@ai-sdk/openai@4.0.50"
+  - "@ai-sdk/react@4.0.86"
+  - "@ai-sdk/sandbox-vercel@1.0.92"
+  - "@ai-sdk/workflow-harness@1.0.92"
+  - "@assistant-ui/ai-sdk@0.0.3"
+  - "@assistant-ui/core@0.3.16"
+  - "@assistant-ui/react-ai-sdk@1.4.8"
+  - "@assistant-ui/react@0.15.17"
+  - "@assistant-ui/store@0.3.11"
+  - "@assistant-ui/tap@0.9.15"
+  - "@nestjs/common@12.0.1"
+  - "@nestjs/config@12.0.0"
+  - "@nestjs/core@12.0.1"
+  - "@nestjs/platform-express@12.0.1"
+  - "@nestjs/platform-fastify@12.0.1"
+  - "@nestjs/testing@12.0.1"
+  - "@tanstack/query-core@5.102.8"
+  - "@tanstack/react-query@5.102.8"
+  - "@testing-library/react@16.3.3"
+  - "@types/node@26.4.0"
+  - assistant-cloud@0.1.42
+  - assistant-stream@0.3.40
+  - postcss@8.5.26
+  - safe-content-frame@0.0.28

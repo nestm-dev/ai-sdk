@@ -15,28 +15,28 @@
 		"check": "pnpm run typecheck && pnpm run test"
 	},
 	"dependencies": {
-		"@ai-sdk/anthropic": "4.0.30",
-		"@ai-sdk/google": "4.0.34",
-		"@ai-sdk/openai": "4.0.30",
-		"@nestjs/common": "12.0.0-alpha.5",
-		"@nestjs/config": "4.0.4",
-		"@nestjs/core": "12.0.0-alpha.5",
-		"@nestjs/platform-fastify": "12.0.0-alpha.5",
+		"@ai-sdk/anthropic": "4.0.44",
+		"@ai-sdk/google": "4.0.56",
+		"@ai-sdk/openai": "4.0.50",
+		"@nestjs/common": "12.0.1",
+		"@nestjs/config": "12.0.0",
+		"@nestjs/core": "12.0.1",
+		"@nestjs/platform-fastify": "12.0.1",
 		"@nestm/ai-sdk": "workspace:*",
-		"ai": "7.0.52",
+		"ai": "7.0.83",
 		"class-transformer": "0.5.1",
 		"class-validator": "0.15.1",
-		"fastify": "5.11.2",
+		"fastify": "5.12.1",
 		"reflect-metadata": "0.2.2",
 		"rxjs": "7.8.2",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@nestjs/testing": "12.0.0-alpha.5",
-		"@types/node": "26.1.2",
-		"supports-color": "7.2.0",
+		"@nestjs/testing": "12.0.1",
+		"@types/node": "26.4.0",
+		"supports-color": "11.0.0",
 		"tsx": "4.23.12",
 		"typescript": "7.0.2",
-		"vitest": "4.1.10"
+		"vitest": "4.1.11"
 	}
 }

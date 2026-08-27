@@ -20,27 +20,19 @@ uses; this package does not depend on OpenAI, Anthropic, Google, MCP, or another
 ## Requirements
 
 - Node 22.12 or newer
-- NestJS `^12.0.0-alpha.5`
+- NestJS `^12.0.0`
 - AI SDK `>=7.0.52 <8`
 - ESM
 
-The optional Harness entrypoint currently requires the exact compatibility pair `ai@7.0.52` and
-`@ai-sdk/harness@1.0.58`. Claude Code and Codex adapters are tested as one release train; see the
+The optional Harness entrypoint currently requires the exact compatibility pair `ai@7.0.83` and
+`@ai-sdk/harness@1.0.92`. Claude Code and Codex adapters are tested as one release train; see the
 Harness section before upgrading any one package independently.
-
-> **NestJS prerelease peer note:** current NestJS 12 alpha packages still declare NestJS 11 ranges
-> for some sibling peers. With pnpm, allow NestJS 12 for those peers in `pnpm-workspace.yaml`. With
-> npm, use an equivalent override or `--legacy-peer-deps` until the upstream ranges are updated.
-> When using `--legacy-peer-deps`, install `zod` explicitly because npm will not auto-install AI
-> SDK's peer dependency in that mode.
 
 ## Installation
 
 ```bash
 pnpm add @nestm/ai-sdk@alpha ai zod @nestjs/common @nestjs/core reflect-metadata rxjs
-
-# npm while the NestJS 12 peer ranges are prerelease-only
-npm install @nestm/ai-sdk@alpha ai zod @nestjs/common @nestjs/core reflect-metadata rxjs --legacy-peer-deps
+npm install @nestm/ai-sdk@alpha ai zod @nestjs/common @nestjs/core reflect-metadata rxjs
 ```
 
 The package is currently on an alpha release train, so use the `alpha` dist-tag until a stable
@@ -502,9 +494,9 @@ deadline, and the fenced lease is released last.
 stream with AI SDK's `toUIMessageStream`, and returns the existing opaque HTTP response type. Stream
 cancellation is forwarded to the run before final cleanup.
 
-The tested candidate train is `ai@7.0.52`, `@ai-sdk/harness@1.0.58`,
-`@ai-sdk/harness-claude-code@1.0.59`, `@ai-sdk/harness-codex@1.0.60`, and
-`@ai-sdk/sandbox-vercel@1.0.58`. `@ai-sdk/workflow-harness` is deliberately not exported: its
+The tested candidate train is `ai@7.0.83`, `@ai-sdk/harness@1.0.92`,
+`@ai-sdk/harness-claude-code@1.0.96`, `@ai-sdk/harness-codex@1.0.94`, and
+`@ai-sdk/sandbox-vercel@1.0.92`. `@ai-sdk/workflow-harness` is deliberately not exported: its
 time-slice continuation can contain the same bridge credential and is not safe for durable storage.
 
 ## Optional observability
