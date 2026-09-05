@@ -16,12 +16,12 @@
 		"verify": "pnpm run check && pnpm run build"
 	},
 	"dependencies": {
-		"@ai-sdk/react": "4.0.86",
+		"@ai-sdk/react": "4.0.93",
 		"@assistant-ui/react": "0.15.17",
 		"@assistant-ui/react-ai-sdk": "1.4.8",
 		"@nestm/ai-sdk": "workspace:*",
 		"@tanstack/react-query": "5.102.8",
-		"ai": "7.0.83",
+		"ai": "7.0.90",
 		"clsx": "2.1.1",
 		"lucide-react": "1.34.0",
 		"next": "16.3.3",
