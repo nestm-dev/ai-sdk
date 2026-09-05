@@ -16,7 +16,7 @@
 		"@nestjs/core": "12.0.1",
 		"@nestjs/platform-express": "12.0.1",
 		"@nestm/ai-sdk": "workspace:*",
-		"ai": "7.0.83",
+		"ai": "7.0.90",
 		"reflect-metadata": "0.2.2",
 		"rxjs": "7.8.2",
 		"zod": "4.4.3"
