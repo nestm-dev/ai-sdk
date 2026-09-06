@@ -93,6 +93,34 @@ describe("process-local run streams", () => {
 		expect(() => r.launch(reservation, async () => second!)).toThrow(AiSdkRunStreamError);
 		expect(() => r.reserve("inventory")).toThrow(AiSdkRunStreamError);
 	});
+	it("drains events appended while a slow subscriber was yielding an older projection", async () => {
+		const r = registry();
+		const reservation = r.reserve("slow");
+		const tail = deferred<void>();
+		const completed = deferred<void>();
+		r.launch(reservation, async () => ({
+			metadata: "slow",
+			events: (async function* () {
+				try {
+					yield { value: "first" };
+					await tail.promise;
+					yield { value: "last", terminal: true };
+				} finally {
+					completed.resolve();
+				}
+			})(),
+		}));
+		const stream = await r.subscribe("slow", live);
+		const iterator = stream!.events[Symbol.asyncIterator]();
+		expect((await iterator.next()).value).toEqual({ value: "first" });
+		tail.resolve();
+		await completed.promise;
+		// Finish the producer while the subscriber remains paused at its first yield.
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		expect((await iterator.next()).value).toEqual({ value: "last", terminal: true });
+		expect((await iterator.next()).done).toBe(true);
+	});
+
 	it("retains terminal events after explicit cancellation and waits for producer cleanup", async () => {
 		const r = registry();
 		const reservation = r.reserve("job");

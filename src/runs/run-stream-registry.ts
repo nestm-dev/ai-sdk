@@ -273,7 +273,7 @@ export class AiSdkRunStreamRegistry<Event, Metadata> {
 				if (signal.aborted) return;
 				yield event;
 			}
-			if (projection.done || record.finished) return;
+			if (projection.done || (record.finished && record.revision === revision)) return;
 			await this.#waitForChange(record, revision, signal);
 		}
 	}
