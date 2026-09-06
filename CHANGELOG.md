@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.6
+
+### Patch Changes
+
+- f9cb973: Add `/runs` with a typed process-local run stream registry: bounded reservations, readiness, reconnectable subscriptions, host-owned replay projections, explicit cancellation and shutdown. No Harness, persistence or additional dependencies are introduced.
+
 ## 0.1.0-alpha.5
 
 ### Patch Changes
