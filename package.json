@@ -78,7 +78,12 @@
 			"import": "./dist/observability/testing/index.mjs",
 			"default": "./dist/observability/testing/index.mjs"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./runs": {
+			"types": "./dist/runs/index.d.mts",
+			"import": "./dist/runs/index.mjs",
+			"default": "./dist/runs/index.mjs"
+		}
 	},
 	"files": [
 		"dist",
@@ -111,7 +116,7 @@
 		"test:coverage": "vitest run --coverage",
 		"test:packed-types": "tsc -p tests/packed-types/tsconfig.json",
 		"example:build": "pnpm --filter @nestm/example-ai-sdk build",
-		"verify:pack": "pnpm run build && node scripts/check-package.mjs && publint --strict && pnpm run test:packed-types",
+		"verify:pack": "pnpm run build && node scripts/check-package.mjs && publint --strict && pnpm run test:packed-types && node scripts/verify-runs-consumer.mjs",
 		"verify:control-plane": "pnpm run build && pnpm --filter @nestm/ai-sdk-control-plane-web run verify",
 		"verify:playground": "pnpm run build && pnpm --filter @nestm/ai-sdk-playground run check && pnpm --filter @nestm/ai-sdk-playground run build",
 		"verify": "pnpm run check && pnpm run test && pnpm run verify:pack && pnpm exec attw --pack . --profile esm-only && pnpm run example:build && pnpm run verify:control-plane && pnpm run verify:playground",
