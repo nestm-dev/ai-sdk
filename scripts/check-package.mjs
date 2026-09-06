@@ -2,6 +2,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const expectedExports = [
+	"./runs",
 	".",
 	"./http",
 	"./testing",
@@ -21,6 +22,8 @@ for (const entry of expectedExports) {
 }
 
 for (const file of [
+	"../dist/runs/index.mjs",
+	"../dist/runs/index.d.mts",
 	"../dist/index.mjs",
 	"../dist/index.d.mts",
 	"../dist/http/index.mjs",

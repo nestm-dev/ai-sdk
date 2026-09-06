@@ -720,3 +720,23 @@ persistence. Import provider capabilities from AI SDK or their provider packages
 ## License
 
 BSD-3-Clause
+
+### Process-local run streams
+
+`@nestm/ai-sdk/runs` exports `AiSdkRunStreamRegistry<Event, Metadata>` independently
+of NestJS, HTTP and Harness. Reserve an exact host-owned key, launch one producer,
+and subscribe to typed events. Encode the events only at the transport boundary.
+`createReplay(key)` supplies the host's bounded projection; each subscriber gets
+its own cursor. The host also owns authorization, metadata validation and durable
+terminal results. Detaching a subscriber never aborts execution. Explicit cancel,
+execution deadlines and shutdown abort the producer, which must honor its signal
+and finish its persistence and resource cleanup. Shutdown waits for that cleanup,
+including a producer that becomes ready after cancellation.
+
+Defaults are 256 retained entries, a 15-minute execution deadline, 60 seconds of
+terminal replay, and a 250-millisecond registration grace. Completed replay may be
+evicted under capacity pressure; active executions are never evicted. A projection
+must enforce its own event/byte bounds. No distributed execution, durable replay,
+checkpoint, or runtime lease is created. Reservations are identity-checked and may
+be launched only once. Failed unlaunched reservations should be released with
+`failReservation`; the host should report producer errors with `onStreamError`.
