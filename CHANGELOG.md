@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.7
+
+### Patch Changes
+
+- 5d5d224: Drain replay revisions appended while a subscriber is paused yielding an older projection, even when the producer has already finished. This preserves final events for slow HTTP consumers.
+
 ## 0.1.0-alpha.6
 
 ### Patch Changes
