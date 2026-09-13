@@ -344,6 +344,20 @@ AiSdkModule.forFeature({
 
 Inject the resolved set with `@InjectAiToolset("mcp")` or `getAiToolsetToken("mcp")`.
 
+### Bounded tool input diagnostics
+
+`createAiSdkToolInputDiagnostics()` creates an opt-in policy for one execution. Call
+`recordStep(step)` from native `onStepEnd`, then use `prepareMessages(messages)` in
+`prepareStep` after any application context projection. Clear its state on completion,
+abort or error. Do not share the instance between runs.
+
+The policy replaces only matching invalid-input error results with at most eight
+typed issues in 2048 UTF-8 bytes. It preserves the original tool call, native receipts,
+provider metadata and successful tool results. It never executes a repair, prints
+rejected values or arbitrary exception messages, changes authorization, or persists
+content. Unknown validators receive generic schema guidance. Custom field descriptions
+remain the source of tool-specific constraints such as UTF-8 byte budgets.
+
 ## Named agents
 
 Register an existing AI SDK `Agent` or `ToolLoopAgent`, or pass complete `ToolLoopAgentSettings` and
