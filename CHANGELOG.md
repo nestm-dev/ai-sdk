@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.8
+
+### Minor Changes
+
+- 785972f: Add opt-in, execution-local tool input diagnostics for native AI SDK step hooks. Validation failures become bounded actionable model results without echoing rejected payloads, changing tool calls, or executing repairs.
+
 ## 0.1.0-alpha.7
 
 ### Patch Changes
