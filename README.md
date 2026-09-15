@@ -754,3 +754,39 @@ must enforce its own event/byte bounds. No distributed execution, durable replay
 checkpoint, or runtime lease is created. Reservations are identity-checked and may
 be launched only once. Failed unlaunched reservations should be released with
 `failReservation`; the host should report producer errors with `onStreamError`.
+
+## Separate provider and tool deadlines
+
+For a tool that performs another model call or other long-running work, apply provider deadlines
+at the language-model boundary. The middleware clears its timers on the provider's finish event,
+so subsequent tool execution uses the tool deadline. Caller cancellation remains linked, and
+cancelling the returned stream releases its timers and reader.
+
+```ts
+import { createAiSdkModelTimeoutMiddleware } from "@nestm/ai-sdk";
+import { streamText, wrapLanguageModel } from "ai";
+
+const model = wrapLanguageModel({
+	model: sdk.languageModel("openai:your-model"),
+	middleware: createAiSdkModelTimeoutMiddleware({
+		totalMs: 120_000,
+		chunkMs: 30_000,
+	}),
+});
+const result = streamText({
+	model,
+	prompt: "Create the report",
+	tools,
+	timeout: {
+		totalMs: 900_000,
+		toolMs: 45_000,
+		tools: { writeReportMs: 540_000 },
+	},
+});
+```
+
+Do not also configure native `stepMs`, `firstChunkMs` or `chunkMs` when those limits should
+exclude tool execution: native stream deadlines span the tool-enabled stream. `totalMs` in the
+middleware bounds one provider call, including connection setup and initial reasoning;
+`firstChunkMs` is optional, and `chunkMs` starts after the first output chunk. The middleware
+applies to streaming calls; ordinary `generateText` retains its native timeout behavior.
