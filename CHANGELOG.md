@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.9
+
+### Patch Changes
+
+- 2638bd6: Add model-scoped stream deadlines that stop at the provider finish event, allowing long-running tools to retain independent execution deadlines.
+
 ## 0.1.0-alpha.8
 
 ### Minor Changes
