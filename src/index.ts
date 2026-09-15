@@ -3,6 +3,8 @@ export type { AiSdkConfigurationErrorCode } from "./ai-sdk.error.ts";
 export { AiSdkFeatureModule, AiSdkModule } from "./ai-sdk.module.ts";
 export type { AiSdkForRootAsyncOptions, AiSdkForRootOptions } from "./ai-sdk.module-definition.ts";
 export { AiSdkService } from "./ai-sdk.service.ts";
+export { createAiSdkModelTimeoutMiddleware } from "./ai-sdk-model-timeout.ts";
+export type { AiSdkModelTimeoutOptions } from "./ai-sdk-model-timeout.ts";
 export { createAiSdkToolInputDiagnostics } from "./tools/ai-sdk-tool-input-diagnostics.ts";
 export {
 	AI_SDK_EMBEDDING_MODEL,
