@@ -788,5 +788,7 @@ const result = streamText({
 Do not also configure native `stepMs`, `firstChunkMs` or `chunkMs` when those limits should
 exclude tool execution: native stream deadlines span the tool-enabled stream. `totalMs` in the
 middleware bounds one provider call, including connection setup and initial reasoning;
-`firstChunkMs` is optional, and `chunkMs` starts after the first output chunk. The middleware
+`firstChunkMs` is optional, and `chunkMs` starts after substantive output. Stream metadata,
+block-start/end events and empty deltas do not replace the first-output deadline with the idle
+deadline. This lets providers announce a reasoning block before they emit its content. The middleware
 applies to streaming calls; ordinary `generateText` retains its native timeout behavior.
