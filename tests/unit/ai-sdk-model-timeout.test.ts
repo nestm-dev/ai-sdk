@@ -56,7 +56,8 @@ it.each(["first", "chunk", "total"] as const)(
 				doStream: async () => ({
 					stream: new ReadableStream({
 						start(controller) {
-							if (kind === "chunk") controller.enqueue({ type: "text-start", id: "text" });
+							if (kind === "chunk")
+								controller.enqueue({ type: "text-delta", id: "text", delta: "hello" });
 						},
 						cancel,
 					}),
@@ -83,6 +84,81 @@ it.each(["first", "chunk", "total"] as const)(
 		expect(vi.getTimerCount()).toBe(0);
 	},
 );
+
+it.each(["text-start", "reasoning-start", "tool-input-start"] as const)(
+	"does not start the idle deadline at %s before substantive output",
+	async (type) => {
+		vi.useFakeTimers();
+		const model = wrapLanguageModel({
+			model: new MockLanguageModelV4({
+				doStream: async () => ({
+					stream: new ReadableStream({
+						start(controller) {
+							controller.enqueue(
+								type === "tool-input-start"
+									? { type, id: "block", toolName: "writer" }
+									: { type, id: "block" },
+							);
+							setTimeout(() => {
+								controller.enqueue({ type: "text-delta", id: "text", delta: "ready" });
+								controller.enqueue({
+									type: "finish",
+									finishReason: { unified: "stop", raw: "stop" },
+									usage,
+								});
+								controller.close();
+							}, 60);
+						},
+					}),
+				}),
+			}),
+			middleware: createAiSdkModelTimeoutMiddleware({
+				totalMs: 100,
+				firstChunkMs: 80,
+				chunkMs: 20,
+			}),
+		});
+		const response = await model.doStream({ prompt: [] });
+		const consume = (async () => {
+			const parts = [];
+			for await (const part of response.stream) parts.push(part);
+			return parts;
+		})();
+		await vi.advanceTimersByTimeAsync(65);
+		expect((await consume).at(-1)?.type).toBe("finish");
+		expect(vi.getTimerCount()).toBe(0);
+	},
+);
+
+it("keeps the first-output deadline active after an empty reasoning block", async () => {
+	vi.useFakeTimers();
+	const model = wrapLanguageModel({
+		model: new MockLanguageModelV4({
+			doStream: async () => ({
+				stream: new ReadableStream({
+					start(controller) {
+						controller.enqueue({ type: "reasoning-start", id: "thinking" });
+						controller.enqueue({ type: "reasoning-delta", id: "thinking", delta: "" });
+					},
+				}),
+			}),
+		}),
+		middleware: createAiSdkModelTimeoutMiddleware({ firstChunkMs: 40, chunkMs: 10 }),
+	});
+	const response = await model.doStream({ prompt: [] });
+	const consume = (async () => {
+		for await (const _ of response.stream) {
+			/* drain */
+		}
+	})();
+	const rejection = expect(consume).rejects.toMatchObject({
+		name: "TimeoutError",
+		message: "First chunk model timeout",
+	});
+	await vi.advanceTimersByTimeAsync(45);
+	await rejection;
+	expect(vi.getTimerCount()).toBe(0);
+});
 
 it("links caller cancellation and releases a cancelled consumer", async () => {
 	const cancel = vi.fn();

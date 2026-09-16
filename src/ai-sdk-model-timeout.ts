@@ -4,7 +4,7 @@ export interface AiSdkModelTimeoutOptions {
 	/** Covers one provider request, including reasoning before the first output. */
 	readonly totalMs?: number;
 	readonly firstChunkMs?: number;
-	/** Starts after the first output chunk; time spent executing tools is excluded. */
+	/** Starts after substantive output, not block-start metadata; excludes tool execution. */
 	readonly chunkMs?: number;
 }
 
@@ -77,11 +77,7 @@ export function createAiSdkModelTimeoutMiddleware(
 									return;
 								}
 								if (next.value.type === "finish" || next.value.type === "error") cleanup();
-								else if (
-									next.value.type !== "stream-start" &&
-									next.value.type !== "response-metadata" &&
-									next.value.type !== "raw"
-								) {
+								else if (isOutput(next.value)) {
 									clearTimeout(first);
 									first = undefined;
 									clearTimeout(chunk);
@@ -106,6 +102,12 @@ export function createAiSdkModelTimeoutMiddleware(
 			}
 		},
 	};
+}
+
+function isOutput(part: { type: string; delta?: string }): boolean {
+	if (["text-delta", "reasoning-delta", "tool-input-delta"].includes(part.type))
+		return (part.delta?.length ?? 0) > 0;
+	return ["tool-call", "tool-result", "file", "source"].includes(part.type);
 }
 
 function abortable<Result>(work: PromiseLike<Result>, signal: AbortSignal): Promise<Result> {
