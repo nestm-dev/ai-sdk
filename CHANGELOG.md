@@ -1,5 +1,11 @@
 # @nestm/ai-sdk
 
+## 0.1.0-alpha.10
+
+### Patch Changes
+
+- 46e0220: Start model idle deadlines only after substantive output. Reasoning, text, and tool-input block headers and empty deltas no longer trigger the shorter idle timeout while the provider is still preparing its first output. First-output and total deadlines remain active.
+
 ## 0.1.0-alpha.9
 
 ### Patch Changes
